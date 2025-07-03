@@ -1,6 +1,6 @@
 from collections import defaultdict, deque
-from orm.schema.field import PrimaryKeyField, ForeignKeyField
-from orm.constants import SCHEMA_SNAPSHOT_NAME
+from polynom.schema.field import PrimaryKeyField, ForeignKeyField
+from polynom.constants import SCHEMA_SNAPSHOT_NAME
 from datetime import datetime
 import os
 import json

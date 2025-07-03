@@ -1,4 +1,4 @@
-from orm.session.session import Session
+from polynom.session.session import Session
 
 class Migrator:
     def __init__(self):

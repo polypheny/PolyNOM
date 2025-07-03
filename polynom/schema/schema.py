@@ -1,6 +1,6 @@
-from orm.schema.field import Field, PrimaryKeyField
-from orm.schema.polytypes import VarChar
-from orm.constants import DEFAULT_NAMESPACE
+from polynom.schema.field import Field, PrimaryKeyField
+from polynom.schema.polytypes import VarChar
+from polynom.constants import DEFAULT_NAMESPACE
 
 class BaseSchema:
     entity_name: str

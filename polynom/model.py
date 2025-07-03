@@ -1,7 +1,7 @@
 import uuid as uuidlib
 from typing import Any, Type, TypeVar
 from copy import deepcopy
-from orm.query.query import Query
+from polynom.query.query import Query
 T = TypeVar("T")
 
 

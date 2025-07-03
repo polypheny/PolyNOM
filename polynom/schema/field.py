@@ -1,6 +1,5 @@
 from typing import Type, TypeVar
-
-from orm.schema.polytypes import _BaseType
+from polynom.schema.polytypes import _BaseType
 
 T = TypeVar('T', bound=_BaseType)
 

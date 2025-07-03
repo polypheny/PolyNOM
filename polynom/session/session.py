@@ -6,9 +6,9 @@ from json import dumps
 from datetime import datetime
 from enum import Enum, auto
 from dataclasses import dataclass, field
-from orm.model import BaseModel
-from orm.reflection.reflection import ChangeLog
-from orm.schema.relationship import Relationship
+from polynom.model import BaseModel
+from polynom.reflection.reflection import ChangeLog
+from polynom.schema.relationship import Relationship
 
 
 class _SessionState(Enum):

@@ -1,5 +1,5 @@
 from typing import Any, Tuple
-from orm.query.query import Query
+from polynom.query.query import Query
 
 """
 Encapsulates content to eagerly load a relationship 

@@ -1,9 +1,9 @@
-from orm.model import BaseModel
-from orm.schema.schema_registry import register_schema
-from orm.schema.schema import BaseSchema
-from orm.schema.field import Field
-from orm.schema.polytypes import Timestamp, Text, Json
-from orm.constants import INTERNAL_NAMESPACE, CHANGE_LOG_TABLE, SNAPSHOT_TABLE
+from polynom.model import BaseModel
+from polynom.schema.schema_registry import register_schema
+from polynom.schema.schema import BaseSchema
+from polynom.schema.field import Field
+from polynom.schema.polytypes import Timestamp, Text, Json
+from polynom.constants import INTERNAL_NAMESPACE, CHANGE_LOG_TABLE, SNAPSHOT_TABLE
 
 class ChangeLogSchema(BaseSchema):
     entity_name = CHANGE_LOG_TABLE

@@ -1,10 +1,10 @@
 from __future__ import annotations
 from typing import Type, List, Optional, Dict, Any, TYPE_CHECKING, Tuple
-from orm.schema.field import PrimaryKeyField, ForeignKeyField
+from polynom.schema.field import PrimaryKeyField, ForeignKeyField
 
 if TYPE_CHECKING:
-    from orm.session.session import Session
-    from orm.model import BaseModel
+    from polynom.session.session import Session
+    from polynom.model import BaseModel
 
 
 class Query:
@@ -241,7 +241,7 @@ class Query:
 
     def options(self, *opts) -> "Query":
         for opt in opts:
-            from orm.query.joined_load import JoinedLoad
+            from polynom.query.joined_load import JoinedLoad
             if isinstance(opt, JoinedLoad):
                 opt.apply(self) # this applies the eagerloading instruction
         return self

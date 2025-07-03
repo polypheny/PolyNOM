@@ -1,12 +1,12 @@
 import polypheny
 import docker
-from orm.schema.migration import Migrator
-from orm.session.session import Session
+from polynom.schema.migration import Migrator
+from polynom.session.session import Session
 from docker.errors import DockerException, NotFound, ImageNotFound
-from orm.schema.schema_registry import _get_ordered_schemas, _to_json
-from orm.schema.field import PrimaryKeyField, ForeignKeyField
-from orm.constants import PRISM_PORT, WEBUI_PORT, HTTP_PORT, CONFIG_SERVER_PORT, INFORMATION_SERVER_PORT, SYSTEM_USER_NAME
-from orm.reflection.reflection import SchemaSnapshot, SchemaSnapshotSchema
+from polynom.schema.schema_registry import _get_ordered_schemas, _to_json
+from polynom.schema.field import PrimaryKeyField, ForeignKeyField
+from polynom.constants import PRISM_PORT, WEBUI_PORT, HTTP_PORT, CONFIG_SERVER_PORT, INFpolynomATION_SERVER_PORT, SYSTEM_USER_NAME
+from polynom.reflection.reflection import SchemaSnapshot, SchemaSnapshotSchema
 
 class Initializer:
     def __init__(self, app_uuid: str, host: str, port: int, user: str = "pa", password: str = "", transport: str = 'plain', deploy_on_docker: bool = True, migrate: bool = True):
