@@ -1,3 +1,4 @@
+import pytest
 from polynom.session.session import Session, _SessionState
 from polynom.session.initializer import Initializer
 

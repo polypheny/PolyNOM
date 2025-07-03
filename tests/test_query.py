@@ -1,8 +1,11 @@
 from polynom.session.session import Session
 from polynom.session.initializer import Initializer
-from orm.schema.schema_registry import register_schema
-from orm.schema.field import Field, PrimaryKeyField, ForeignKeyField
-from orm.schema.polytypes import VarChar, Integer, Boolean
+from polynom.schema.schema_registry import register_schema
+from polynom.schema.field import Field, PrimaryKeyField, ForeignKeyField
+from polynom.schema.polytypes import VarChar, Integer, Boolean
+from polynom.schema.schema import BaseSchema
+from polynom.model import BaseModel
+from polynom.schema.relationship import Relationship
 
 APP_UUID = 'a8817239-9bae-4961-a619-1e9ef5575eff'
 
@@ -195,7 +198,7 @@ def test_query_get():
     with session:
         result = User.query(session).get(entry_id)
         assert len(result) == 2
-        assert result[0]._entry_id = entry_id
+        assert result[0]._entry_id == entry_id
 
 def test_query_exists_present():
     session = Session('localhost', 20590, 'test')

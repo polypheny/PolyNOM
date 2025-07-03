@@ -1,5 +1,5 @@
 import pytest
-from polynom.schema.relatioship import Relationship
+from polynom.schema.relationship import Relationship
 
 class User:
     def __init__(self, name):
@@ -7,7 +7,7 @@ class User:
         self.bikes = []
 
 class Bike:
-    user = Relationship(User, backref="bikes")
+    user = Relationship(User, back_populatesf="bikes")
 
     def __init__(self, brand, model, owner_id):
         self.brand = brand

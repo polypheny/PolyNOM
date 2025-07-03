@@ -6,7 +6,7 @@ from decimal import Decimal
 from enum import Enum
 from shapely.geometry import Point
 
-from polytypes import (
+from polynom.schema.polytypes import (
     _BaseType, _TemporalBaseType, PolyEnum, BigInt, Boolean, Date, Decimal as PolyDecimal,
     Double, Integer, Real, SmallInt, Text, Json, Time, Timestamp, TinyInt, VarChar, File, Geometry
 )

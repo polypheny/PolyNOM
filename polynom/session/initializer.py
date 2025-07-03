@@ -6,7 +6,7 @@ from polynom.session.session import Session
 from docker.errors import DockerException, NotFound, ImageNotFound
 from polynom.schema.schema_registry import _get_ordered_schemas, _to_json
 from polynom.schema.field import PrimaryKeyField, ForeignKeyField
-from polynom.constants import PRISM_PORT, WEBUI_PORT, HTTP_PORT, CONFIG_SERVER_PORT, INFpolynomATION_SERVER_PORT, SYSTEM_USER_NAME
+from polynom.constants import PRISM_PORT, WEBUI_PORT, HTTP_PORT, CONFIG_SERVER_PORT, INFORMATION_SERVER_PORT, SYSTEM_USER_NAME
 from polynom.reflection.reflection import SchemaSnapshot, SchemaSnapshotSchema
 
 logger = logging.getLogger(__name__)
