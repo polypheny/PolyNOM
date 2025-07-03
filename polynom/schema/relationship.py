@@ -1,12 +1,4 @@
 class Relationship:
-<<<<<<< HEAD
-    def __init__(self, back_populates:str = None):
-        self._back_populates = back_populates
-        self._internal_name = None
-       
-    def __set_name__(self, owner, name):
-       self._internal_name = f'_{name}'
-=======
     def __init__(self, target_model: type["BaseModel"] = None, back_populates:str = None, cascade:str = None):
         self.target_model = target_model
         self._back_populates = back_populates
@@ -19,14 +11,11 @@ class Relationship:
         self._internal_name = f'_{name}'
         self._key = name
         self._owner_class = owner
->>>>>>> ef3b7996afa96d22a1ed0d7289d299b84420488b
 
     def __set__(self, instance, value):
         old_value = getattr(instance, self._internal_name, None)
         if old_value is value:
             return
-<<<<<<< HEAD
-=======
 
         setattr(instance, self._internal_name, value)
         if old_value and self._back_populates:
@@ -58,21 +47,8 @@ class Relationship:
                         return model_cls
 
         raise ValueError(f"Could not infer target_model for relationship '{self._key}'")
->>>>>>> ef3b7996afa96d22a1ed0d7289d299b84420488b
 
-        setattr(instance, self._internal_name, value)
-        
-        if old_value and self._back_populates:
-            setattr(old_value, self._back_populates, None)
-            
-        if value and self._back_populates:
-            setattr(value, self._back_populates, instance)
-        
     def __get__(self, instance, owner):
-<<<<<<< HEAD
-       return getattr(instance, self._internal_name, None)
-=======
         if instance is None:
             return self
         return getattr(instance, self._internal_name, None)
->>>>>>> ef3b7996afa96d22a1ed0d7289d299b84420488b
