@@ -1,5 +1,6 @@
 import polypheny
 import docker
+import logging
 from polynom.schema.migration import Migrator
 from polynom.session.session import Session
 from docker.errors import DockerException, NotFound, ImageNotFound
@@ -7,6 +8,8 @@ from polynom.schema.schema_registry import _get_ordered_schemas, _to_json
 from polynom.schema.field import PrimaryKeyField, ForeignKeyField
 from polynom.constants import PRISM_PORT, WEBUI_PORT, HTTP_PORT, CONFIG_SERVER_PORT, INFpolynomATION_SERVER_PORT, SYSTEM_USER_NAME
 from polynom.reflection.reflection import SchemaSnapshot, SchemaSnapshotSchema
+
+logger = logging.getLogger(__name__)
 
 class Initializer:
     def __init__(self, app_uuid: str, host: str, port: int, user: str = "pa", password: str = "", transport: str = 'plain', deploy_on_docker: bool = True, migrate: bool = True):
@@ -46,17 +49,21 @@ class Initializer:
             self._create_schema()
         
     def _deploy_polypheny(self, container_name="polypheny", prism_port=20591):
+        logger.info("Establish connection to docker...")
         try:
             client = docker.from_env()
             client.ping()
         except DockerException as e:
-            raise RuntimeError("Docker is not running or not accessible") from e
+            logger.error("Docker is not running or not accessible.")
+            raise RuntimeError("Docker is not running or not accessible.") from e
 
+        logger.info("Checking for presence of polypheny...")
         try:
             container = client.containers.get(container_name)
             container.start()
         except NotFound:
             try:
+                logger.info("Polypheny not found. A new container will be deployed. This may take a moment.")
                 client.images.pull("polypheny/polypheny")
                 client.containers.run(
                     "polypheny/polypheny",
@@ -71,24 +78,30 @@ class Initializer:
                     detach=True
                 )
             except DockerException as e:
-                raise RuntimeError("Failed to create or run the Polypheny container") from e
+                logger.error("Failed to create or run the Polypheny container.")
+                raise RuntimeError("Failed to create or run the Polypheny container.") from e
             
     def _verify_schema(self):
         self._process_schema(SchemaSnapshotSchema)
+        
         session = Session(self._host, self._port, SYSTEM_USER_NAME)
         with session:
+            logger.debug(f"Reading schema snapshot from database for application {self._app_uuid}.")
             previous = SchemaSnapshot.query(session).get(self._app_uuid)
             current_snapshot = _to_json()
 
             if not previous:
+                logger.debug(f"No schema snapshot found for application {self._app_uuid}. Creating a first one.")
                 previous = SchemaSnapshot(current_snapshot, _entry_id=self._app_uuid)
                 session.add(previous, tracking=False) # tracking system not yet initialized on initial setup
                 session.commit()
                 return
             
+            logger.debug(f"Checking for schema changes for application {self._app_uuid}.")
             diff = self._compare_snapshots(previous.snapshot, current_snapshot)
             
             if diff and self._migrate:
+                logger.debug(f"Schema changes for application {self._app_uuid} found.")
                 migrator = Migrator()
                 migrator.run(session, diff)
 
@@ -158,8 +171,12 @@ class Initializer:
         namespace = schema_class.namespace_name
         fields = schema_class._get_fields()
         
+        logger.info(f"Initializing entity {entity} in namespace {namespace}.")
+        
         query = f'CREATE RELATIONAL NAMESPACE IF NOT EXISTS "{namespace}"'
         self._cursor.execute(query)
+        
+        logger.debug(f"Created namespace {namespace}if absent.")
 
         column_defs = []
         foreign_keys = []
@@ -197,6 +214,7 @@ class Initializer:
                 constraints.append(f'UNIQUE ("{col}")')
 
         create_stmt = f'CREATE TABLE IF NOT EXISTS "{namespace}"."{entity}" ({", ".join(column_defs + constraints)});'
-        print(create_stmt)
         self._cursor.executeany('sql', create_stmt, namespace=namespace)
         self._conn.commit()
+        
+        logger.debug(f"Created entity {entity} if absent.")

@@ -1,7 +1,8 @@
 import inspect
-
+import logging
 import polypheny
 import json
+import uuid
 from json import dumps
 from datetime import datetime
 from enum import Enum, auto
@@ -10,6 +11,7 @@ from polynom.model import BaseModel
 from polynom.reflection.reflection import ChangeLog
 from polynom.schema.relationship import Relationship
 
+logger = logging.getLogger(__name__)
 
 class _SessionState(Enum):
     INITIALIZED = auto()
@@ -24,6 +26,7 @@ class Session:
     _db_user: str = "pa"
     _password: str = ""
     _transport: str = 'plain'
+    _session_id: uuid.UUID = field(default_factory=uuid.uuid4)
 
     _conn: any = field(init=False, default=None)
     _cursor: any = field(init=False, default=None)
@@ -42,6 +45,7 @@ class Session:
         )
         self._cursor = self._conn.cursor()
         self._state = _SessionState.ACTIVE
+        logger.debug(f"Session {self._session_id} started.")
         return self
 
     def _update(self, model):
@@ -151,6 +155,7 @@ class Session:
             if diff:
                 self._update(model)
                 self._update_change_log(model, diff)
+        logger.debug(f"Session {self._session_id} flushed to polypheny.")
 
     def commit(self):
         if self._state != _SessionState.ACTIVE:
@@ -164,12 +169,14 @@ class Session:
             model._is_active = False
             
         self._state = _SessionState.COMPLETED
+        logger.debug(f"Session {self._session_id} committed.")
 
     def rollback(self):
         if self._state != _SessionState.ACTIVE:
             raise RuntimeError(f"Cannot rollback in session state {self._state.name}.")
         self._conn.rollback()
         self._state = _SessionState.COMPLETED
+        logger.debug(f"Session {self._session_id} rolled back.")
 
     def get_session_state(self):
         return self._state
