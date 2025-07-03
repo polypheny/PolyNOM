@@ -1,0 +1,28 @@
+name: Publish Python 🐍 distributions 📦 to PyPI
+on:
+    release:
+        types:
+            - published
+jobs:
+    publish:
+        name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+            packages: write
+            id-token: write 
+        steps:
+            - uses: actions/checkout@v4
+            - name: Set up Python 3.11
+              uses: actions/setup-python@v5
+              with:
+                  python-version: 3.11
+            - name: Set Version
+              id: version
+              run: echo "${GITHUB_REF#refs/tags/}" > polyNOM-version.txt
+            - name: Create MANIFEST.in
+              run: echo "include polyNOM-version-version.txt" > MANIFEST.in
+            - name: Build package
+              run: python setup.py sdist
+            - name: Publish distribution 📦 to PyPI
+              uses: pypa/gh-action-pypi-publish@release/v1
