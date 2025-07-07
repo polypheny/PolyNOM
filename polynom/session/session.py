@@ -20,12 +20,11 @@ class _SessionState(Enum):
 
 @dataclass
 class Session:
-    _host: str
-    _port: int
+    _address: any
     _log_user: str
     _db_user: str = "pa"
-    _password: str = ""
-    _transport: str = 'plain'
+    _password: str = "pa"
+    _transport: str = ''
     _session_id: uuid.UUID = field(default_factory=uuid.uuid4)
 
     _conn: any = field(init=False, default=None)
@@ -38,7 +37,7 @@ class Session:
             return
             
         self._conn = polypheny.connect(
-            (self._host, self._port),
+            self._address,
             username=self._db_user,
             password=self._password,
             transport=self._transport

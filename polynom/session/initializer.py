@@ -12,10 +12,9 @@ from polynom.reflection.reflection import SchemaSnapshot, SchemaSnapshotSchema
 logger = logging.getLogger(__name__)
 
 class Initializer:
-    def __init__(self, app_uuid: str, host: str, port: int, user: str = "pa", password: str = "", transport: str = 'plain', deploy_on_docker: bool = True, migrate: bool = True):
+    def __init__(self, app_uuid: str, address, user: str = "pa", password: str = "", transport: str = 'plain', deploy_on_docker: bool = True, migrate: bool = True):
         self._app_uuid = app_uuid
-        self._host = host
-        self._port = port
+        self._address = address
         self._user = user
         self._password = password
         self._transport = transport
@@ -27,7 +26,7 @@ class Initializer:
 
     def __enter__(self):
         self._conn = polypheny.connect(
-            (self._host, self._port),
+            self._address,
             username=self._user,
             password=self._password,
             transport = self._transport
@@ -80,7 +79,7 @@ class Initializer:
     def _verify_schema(self):
         self._process_schema(SchemaSnapshotSchema)
         
-        session = Session(self._host, self._port, cst.SYSTEM_USER_NAME)
+        session = Session(self._address, cst.SYSTEM_USER_NAME)
         with session:
             logger.debug(f"Reading schema snapshot from database for application {self._app_uuid}.")
             previous = SchemaSnapshot.query(session).get(self._app_uuid)
