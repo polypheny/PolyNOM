@@ -4,11 +4,15 @@ CHANGE_LOG_TABLE = 'change_log'
 SYSTEM_USER_NAME = 'SYSTEM'
 SNAPSHOT_TABLE = 'snapshot'
 DEFAULT_NAMESPACE = 'public'
-PRISM_PORT = 20591
-WEBUI_PORT = 8080
-HTTP_PORT = 80
-CONFIG_SERVER_PORT = 8081
-INFORMATION_SERVER_PORT = 8082
+POLYPHENY_CONTAINER_NAME = 'polypheny'
+POLYPHENY_IMAGE_NAME = 'vogti/polypheny'
+POLYPHENY_PORTS = {
+    "20590/tcp": 20590,
+    "7659/tcp": 7659,
+    "80/tcp": 80,
+    "8081/tcp": 8081,
+    "8082/tcp": 8082,
+}
 SCHEMA_SNAPSHOT_NAME = 'schema.mappingsnap'
 
 # Derived Variables

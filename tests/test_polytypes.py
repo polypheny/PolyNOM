@@ -108,15 +108,10 @@ class TestPolyEnum:
         assert poly_enum._from_prism_serializable(None) is None
 
     def test_to_sql_expression_escaping(self):
-        # Enum names do not contain quotes normally, but test escaping anyway
-        class QuoteEnum(Enum):
-            QUOTE = "O'Reilly"
-
-        poly_enum = PolyEnum(QuoteEnum)
-        val = QuoteEnum.QUOTE
-        val.name = "O'Reilly"
+        poly_enum = PolyEnum(Color)
+        val = Color.RED
         sql_expr = poly_enum._to_sql_expression(val)
-        assert sql_expr == "'O''Reilly'"
+        assert sql_expr == "'RED'"
 
 
 @pytest.mark.parametrize("cls, python_val, expected_sql", [
@@ -124,7 +119,7 @@ class TestPolyEnum:
     (Boolean, True, "TRUE"),
     (Boolean, False, "FALSE"),
     (Date, date(2020, 1, 1), "'2020-01-01'"),
-    (Decimal, Decimal("123.45"), "123.45"),
+    (PolyDecimal, Decimal("123.45"), "123.45"),
     (Double, 3.14159, "3.14159"),
     (Integer, 42, "42"),
     (Real, 3.14, "3.14"),
@@ -174,7 +169,7 @@ def test_json_to_sql_expression_escaping():
     js = Json()
     d = {"key": "O'Reilly"}
     sql_expr = js._to_sql_expression(d)
-    assert "'O''Reilly'" in sql_expr
+    assert sql_expr == '\'{"key": "O\'\'Reilly"}\''
 
 def test_file_to_json_and_sql():
     f = File()

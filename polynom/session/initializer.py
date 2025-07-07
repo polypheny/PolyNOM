@@ -6,7 +6,7 @@ from polynom.session.session import Session
 from docker.errors import DockerException, NotFound, ImageNotFound
 from polynom.schema.schema_registry import _get_ordered_schemas, _to_json
 from polynom.schema.field import PrimaryKeyField, ForeignKeyField
-from polynom.constants import PRISM_PORT, WEBUI_PORT, HTTP_PORT, CONFIG_SERVER_PORT, INFORMATION_SERVER_PORT, SYSTEM_USER_NAME
+import polynom.constants as cst
 from polynom.reflection.reflection import SchemaSnapshot, SchemaSnapshotSchema
 
 logger = logging.getLogger(__name__)
@@ -48,8 +48,8 @@ class Initializer:
             self._verify_schema()
             self._create_schema()
         
-    def _deploy_polypheny(self, container_name="polypheny", prism_port=20591):
-        logger.info("Establish connection to docker...")
+    def _deploy_polypheny(self):
+        logger.info("Establishing connection to Docker...")
         try:
             client = docker.from_env()
             client.ping()
@@ -57,34 +57,30 @@ class Initializer:
             logger.error("Docker is not running or not accessible.")
             raise RuntimeError("Docker is not running or not accessible.") from e
 
-        logger.info("Checking for presence of polypheny...")
+        logger.info(f"Checking for presence of Polypheny container '{cst.POLYPHENY_CONTAINER_NAME}'...")
         try:
-            container = client.containers.get(container_name)
+            container = client.containers.get(cst.POLYPHENY_CONTAINER_NAME)
             container.start()
+            logger.info(f"Container '{cst.POLYPHENY_CONTAINER_NAME}' found and started.")
         except NotFound:
+            logger.info("Polypheny container not found. Deploying a new container. This may take a moment...")
             try:
-                logger.info("Polypheny not found. A new container will be deployed. This may take a moment.")
-                client.images.pull("polypheny/polypheny")
+                client.images.pull(cst.POLYPHENY_IMAGE_NAME)
                 client.containers.run(
-                    "polypheny/polypheny",
-                    name=container_name,
-                    ports={
-                        "20591/tcp": PRISM_PORT,
-                        "8080/tcp": WEBUI_PORT, # TODO TH: adjust this to new port once new container is available
-                        "80/tcp": HTTP_PORT,
-                        "8081/tcp": CONFIG_SERVER_PORT,
-                        "8082/tcp": INFORMATION_SERVER_PORT,
-                    },
+                    cst.POLYPHENY_IMAGE_NAME,
+                    name=cst.POLYPHENY_CONTAINER_NAME,
+                    ports=cst.POLYPHENY_PORTS,
                     detach=True
                 )
+                logger.info(f"New Polypheny container '{cst.POLYPHENY_CONTAINER_NAME}' deployed and started.")
             except DockerException as e:
-                logger.error("Failed to create or run the Polypheny container.")
+                logger.error(f"Failed to create or run the Polypheny container: {e}")
                 raise RuntimeError("Failed to create or run the Polypheny container.") from e
-            
+
     def _verify_schema(self):
         self._process_schema(SchemaSnapshotSchema)
         
-        session = Session(self._host, self._port, SYSTEM_USER_NAME)
+        session = Session(self._host, self._port, cst.SYSTEM_USER_NAME)
         with session:
             logger.debug(f"Reading schema snapshot from database for application {self._app_uuid}.")
             previous = SchemaSnapshot.query(session).get(self._app_uuid)

@@ -1,5 +1,5 @@
 class Relationship:
-    def __init__(self, target_model: type["BaseModel"] = None, back_populates: str = None, cascade: str = None):
+    def __init__(self, target_model: type["BaseModel"] = None, back_populates:str = None, cascade:str = None):
         self.target_model = target_model
         self._back_populates = back_populates
         self._internal_name = None
@@ -13,34 +13,22 @@ class Relationship:
         self._owner_class = owner
 
     def __set__(self, instance, value):
-        if value and not isinstance(value, self.target_model):
-            raise TypeError(f'Value must be of {type[self.target_model]} but is of {type[value]}')
         old_value = getattr(instance, self._internal_name, None)
         if old_value is value:
             return
 
-        # Remove old backref
+        setattr(instance, self._internal_name, value)
         if old_value and self._back_populates:
             current_back = getattr(old_value, self._back_populates, None)
-            if isinstance(current_back, list):
-                if instance in current_back:
-                    current_back.remove(instance)
-            elif current_back is instance:
+            if current_back is instance:
                 setattr(old_value, self._back_populates, None)
 
             if "delete-orphan" in self._cascade and hasattr(instance, '_session') and instance._session:
                 instance._session.delete(old_value)
 
-        # Set new value
-        setattr(instance, self._internal_name, value)
-
-        # Set new backref
         if value and self._back_populates:
             current_back = getattr(value, self._back_populates, None)
-            if isinstance(current_back, list):
-                if instance not in current_back:
-                    current_back.append(instance)
-            elif current_back is not instance:
+            if current_back is not instance:
                 setattr(value, self._back_populates, instance)
 
             if any(c in self._cascade for c in ("save-update", "all")):
@@ -64,4 +52,3 @@ class Relationship:
         if instance is None:
             return self
         return getattr(instance, self._internal_name, None)
-

@@ -7,14 +7,13 @@ class User:
         self.bikes = []
 
 class Bike:
-    user = Relationship(User, back_populatesf="bikes")
+    user: User = Relationship(User, back_populates="bikes")
 
     def __init__(self, brand, model, owner_id):
         self.brand = brand
         self.model = model
         self.owner_id = owner_id
 
-# The actual test class
 class TestRelationship:
     def test_relationship_assignment_and_backref(self):
         user = User("Alice")

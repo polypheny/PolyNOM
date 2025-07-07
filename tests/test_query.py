@@ -1,3 +1,4 @@
+import pytest
 from polynom.session.session import Session
 from polynom.session.initializer import Initializer
 from polynom.schema.schema_registry import register_schema
@@ -53,7 +54,7 @@ class BikeSchema(BaseSchema):
 
 class Bike(BaseModel):
     schema = BikeSchema()
-    user: User = Relationship(User, backref="bikes")
+    user: User = Relationship(User, back_populates="bikes")
 
     def __init__(self, brand, model, owner_id, _entry_id=None):
         super().__init__(_entry_id)
@@ -85,7 +86,7 @@ bikes = [
 
 @pytest.fixture(scope='module', autouse=True)
 def initialize_polynom():
-    Initializer(APP_UUID, 'localhost', 20590, deploy_on_docker=False).run()
+    Initializer(APP_UUID, 'localhost', 20590, deploy_on_docker=True).run()
     
     # insert test data
     session = Session('localhost', 20590, 'test')
