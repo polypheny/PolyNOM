@@ -86,13 +86,13 @@ bikes = [
 
 @pytest.fixture(scope='module', autouse=True)
 def initialize_polynom():
-    Initializer(APP_UUID, ('localhost', 20590), deploy_on_docker=True).run()
+    Initializer(APP_UUID, ('localhost', 20590), use_docker=False).run()
     
     # insert test data
     session = Session(('localhost', 20590), 'test')
     with session:
         session.add_all(users)
-        session.add_all(bike)
+        session.add_all(bikes)
         session.commit()
     yield
     
@@ -110,7 +110,7 @@ def test_query_all_filtered1():
     session = Session(('localhost', 20590), 'test')
     with session:
         result = User.query(session).filter_by(last_name="muster").all()
-        exexpected_entry_ids = [users[0]._entry_id, users[1]._entry_id]
+        expected_entry_ids = [users[0]._entry_id, users[1]._entry_id]
         
         assert len(result) == 2
         for user in result:
@@ -120,7 +120,7 @@ def test_query_all_filtered2():
     session = Session(('localhost', 20590), 'test')
     with session:
         result = User.query(session).filter_by(active=True).all()
-        exexpected_entry_ids = [users[0]._entry_id, users[3]._entry_id]
+        expected_entry_ids = [users[0]._entry_id, users[3]._entry_id]
         
         assert len(result) == 2
         for user in result:
@@ -132,17 +132,16 @@ def test_query_all_filtered3():
         result = User.query(session).filter_by(email="u4@demo.ch").all()
         
         assert len(result) == 1
-        assert result._entry_id == user[3]._entry_id
+        assert result[0]._entry_id == users[3]._entry_id
             
 def test_query_first_filtered():
     session = Session(('localhost', 20590), 'test')
     with session:
         result = User.query(session).filter_by(is_admin=True).first()
-        exexpected_entry_ids = [users[1]._entry_id, users[2]._entry_id]
+        expected_entry_ids = [users[1]._entry_id, users[2]._entry_id]
         
-        assert len(result) == 1
-        for user in result:
-            assert user._entry_id in expected_entry_ids
+        assert isinstance(result, User)
+        assert result in expected_entry_ids
             
 def test_query_limit_single():
     session = Session(('localhost', 20590), 'test')
@@ -198,8 +197,8 @@ def test_query_get():
     session = Session(('localhost', 20590), 'test')
     with session:
         result = User.query(session).get(entry_id)
-        assert len(result) == 2
-        assert result[0]._entry_id == entry_id
+        assert isinstance(result, User)
+        assert result._entry_id == entry_id
 
 def test_query_exists_present():
     session = Session(('localhost', 20590), 'test')
@@ -218,17 +217,17 @@ def test_query_add_flush_rollback():
 
     session1 = Session(('localhost', 20590), 'test')
     with session1:
-        result = User.query(session).all()
+        result = User.query(session1).all()
         assert len(result) == 5
         for user in result:
             assert user._entry_id in expected_entry_ids
             
     session2 = Session(('localhost', 20590), 'test')
     with session2:
-        new_user = User('new_user', 'new_u6@demo.ch', 'noah', 'newman', False, False),
+        new_user = User('new_user', 'new_u6@demo.ch', 'noah', 'newman', False, False)
         session2.add(new_user) 
 
-        result = User.query(session).all()
+        result = User.query(session2).all()
         assert len(result) == len(users) + 1
         for user in result:
             assert user._entry_id in expected_entry_ids or user._entry_id == new_user._entry_id
@@ -237,7 +236,7 @@ def test_query_add_flush_rollback():
         
     session3 = Session(('localhost', 20590), 'test')
     with session3:
-        result = User.query(session).all()
+        result = User.query(session3).all()
         assert len(result) == len(users)
         for user in result:
             assert user._entry_id in expected_entry_ids
@@ -249,15 +248,15 @@ def test_query_delete():
 
     session1 = Session(('localhost', 20590), 'test')
     with session1:
-        result = User.query(session).all()
+        result = User.query(session1).all()
         assert len(result) == 5
         for user in result:
             assert user._entry_id in expected_entry_ids
             
-    session2 = Session('localhost', 20590, 'test')
+    session2 = Session(('localhost', 20590), 'test')
     with session2:
         session2.add(new_user)
-        session3.commit()
+        session2.commit()
         
     session3 = Session(('localhost', 20590), 'test')
     with session3:
@@ -269,13 +268,13 @@ def test_query_delete():
         delete_count = User.query(session3).filter_by(last_name="newman").delete()
         assert delete_count == 1
         
-        result2 = Users.query(session3).all()
+        result2 = User.query(session3).all()
         assert len(result) == len(users)
         for user in result:
             assert user._entry_id in expected_entry_ids
         session.commit()
         
-def test_query_udpate():
+def test_query_update():
     session = Session(('localhost', 20590), 'test')
     with session:
         result = User.query(session).all()
@@ -285,7 +284,7 @@ def test_query_udpate():
         for user in result:
             assert user._entry_id in expected_entry_ids
             
-        update_count = Users.query(session).filter_by(last_name="muster").update({"active": False})
+        update_count = User.query(session).filter_by(last_name="muster").update({"active": False})
         assert update_count == 1
-        result2 = Users.query(session).get(users[1])
+        result2 = User.query(session).get(users[1])
         assert result2.active == False

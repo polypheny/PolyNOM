@@ -6,7 +6,7 @@ APP_UUID = 'a8817239-9bae-4961-a619-1e9ef5575eff'
 
 @pytest.fixture(scope='module', autouse=True)
 def initialize_polynom():
-    Initializer(APP_UUID, ('localhost', 20590), deploy_on_docker=True).run()
+    Initializer(APP_UUID, ('localhost', 20590), use_docker=False).run()
     yield
 
 def test_session_empty_commit():

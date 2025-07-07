@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from polynom.model import BaseModel
 from polynom.reflection.reflection import ChangeLog
 from polynom.schema.relationship import Relationship
+from polynom.constants import DEFAULT_TRANSPORT, DEFAULT_USER, DEFAULT_PASS
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +23,9 @@ class _SessionState(Enum):
 class Session:
     _address: any
     _log_user: str
-    _db_user: str = "pa"
-    _password: str = "pa"
-    _transport: str = ''
+    _db_user: str = DEFAULT_USER
+    _password: str = DEFAULT_PASS
+    _transport: str = DEFAULT_TRANSPORT
     _session_id: uuid.UUID = field(default_factory=uuid.uuid4)
 
     _conn: any = field(init=False, default=None)

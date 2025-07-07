@@ -12,13 +12,13 @@ from polynom.reflection.reflection import SchemaSnapshot, SchemaSnapshotSchema
 logger = logging.getLogger(__name__)
 
 class Initializer:
-    def __init__(self, app_uuid: str, address, user: str = "pa", password: str = "", transport: str = 'plain', deploy_on_docker: bool = True, migrate: bool = True):
+    def __init__(self, app_uuid: str, address, user: str = cst.DEFAULT_USER, password: str = cst.DEFAULT_PASS, transport: str = cst.DEFAULT_TRANSPORT, use_docker: bool = True, migrate: bool = True):
         self._app_uuid = app_uuid
         self._address = address
         self._user = user
         self._password = password
         self._transport = transport
-        self._deploy_on_docker = deploy_on_docker
+        self._use_docker = use_docker
         self._migrate = migrate
         
         self._conn = None
@@ -41,7 +41,7 @@ class Initializer:
             self._conn.close()
 
     def run(self):
-        if self._deploy_on_docker:
+        if self._use_docker:
             self._deploy_polypheny()
         with self:
             self._verify_schema()

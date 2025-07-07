@@ -13,6 +13,9 @@ POLYPHENY_PORTS = {
     "8081/tcp": 8081,
     "8082/tcp": 8082,
 }
+DEFAULT_TRANSPORT = 'plain'
+DEFAULT_USER = 'pa'
+DEFAULT_PASS = ''
 SCHEMA_SNAPSHOT_NAME = 'schema.mappingsnap'
 
 # Derived Variables
