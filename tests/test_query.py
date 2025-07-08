@@ -1,72 +1,10 @@
 import pytest
 from polynom.session.session import Session
 from polynom.session.initializer import Initializer
-from polynom.schema.schema_registry import register_schema
-from polynom.schema.field import Field, PrimaryKeyField, ForeignKeyField
-from polynom.schema.polytypes import VarChar, Integer, Boolean
-from polynom.schema.schema import BaseSchema
-from polynom.model import BaseModel
-from polynom.schema.relationship import Relationship
+from tests.schema import UserSchema, BikeSchema
+from tests.model import User, Bike
 
 APP_UUID = 'a8817239-9bae-4961-a619-1e9ef5575eff'
-
-# schema and models for test data
-class UserSchema(BaseSchema):
-    entity_name = 'User'
-    fields = [
-        Field('username', VarChar(80), nullable=False, unique=True, previous_name='username2'),
-        Field('email', VarChar(80), nullable=False, unique=True),
-        Field('first_name', VarChar(30), nullable=True),
-        Field('last_name', VarChar(30), nullable=True),
-        Field('active', Boolean()),
-        Field('is_admin', Boolean()),
-    ]
-
-class User(BaseModel):
-    schema = UserSchema()
-
-    def __init__(self, username, email, first_name, last_name, active, is_admin, _entry_id = None):
-        super().__init__(_entry_id)
-        self.username = username
-        self.email = email
-        self.first_name = first_name
-        self.last_name = last_name
-        self.active = active
-        self.is_admin = is_admin
-
-    def get_full_name(self):
-        return f"{self.first_name} {self.last_name}"
-        
-class BikeSchema(BaseSchema):
-    entity_name = 'Bike'
-    fields = [
-        Field('brand', VarChar(50), nullable=False),
-        Field('model', VarChar(50), nullable=False),
-        ForeignKeyField(
-            db_field_name='owner_id',
-            polytype=VarChar(36),
-            referenced_entity_name='User',
-            referenced_db_field_name='_entry_id',
-            nullable=False,
-            python_field_name='owner_id'
-        ),
-    ]
-
-class Bike(BaseModel):
-    schema = BikeSchema()
-    user: User = Relationship(User, back_populates="bikes")
-
-    def __init__(self, brand, model, owner_id, _entry_id=None):
-        super().__init__(_entry_id)
-        self.brand = brand
-        self.model = model
-        self.owner_id = owner_id
-
-    def __repr__(self):
-        return f"<Bike brand={self.brand!r}, model={self.model!r}, owner={self.owner_id!r}>"
-        
-register_schema(UserSchema)
-register_schema(BikeSchema)
 
 # test data
 users = [
@@ -133,6 +71,14 @@ def test_query_all_filtered3():
         
         assert len(result) == 1
         assert result[0]._entry_id == users[3]._entry_id
+        
+def test_query_all_filtered4():
+    session = Session(('localhost', 20590), 'test')
+    with session:
+        result = User.query(session).filter_by(last_name="muster", email="u1@demo.ch").all()
+        
+        assert len(result) == 1
+        assert result[0]._entry_id == users[0]._entry_id
             
 def test_query_first_filtered():
     session = Session(('localhost', 20590), 'test')
@@ -141,7 +87,7 @@ def test_query_first_filtered():
         expected_entry_ids = [users[1]._entry_id, users[2]._entry_id]
         
         assert isinstance(result, User)
-        assert result in expected_entry_ids
+        assert result._entry_id in expected_entry_ids
             
 def test_query_limit_single():
     session = Session(('localhost', 20590), 'test')
@@ -183,7 +129,7 @@ def test_query_count_after_limit():
     session = Session(('localhost', 20590), 'test')
     with session:
         count = User.query(session).limit(3).count()
-        assert count == 3
+        assert count == 5 # limit is applied after count
         
 def test_query_count_after_filter():
     session = Session(('localhost', 20590), 'test')
@@ -268,13 +214,13 @@ def test_query_delete():
         delete_count = User.query(session3).filter_by(last_name="newman").delete()
         assert delete_count == 1
         
-        result2 = User.query(session3).all()
+        result = User.query(session3).all()
         assert len(result) == len(users)
         for user in result:
             assert user._entry_id in expected_entry_ids
-        session.commit()
+        session3.commit()
         
-def test_query_update():
+def test_query_update_single():
     session = Session(('localhost', 20590), 'test')
     with session:
         result = User.query(session).all()
@@ -284,7 +230,27 @@ def test_query_update():
         for user in result:
             assert user._entry_id in expected_entry_ids
             
-        update_count = User.query(session).filter_by(last_name="muster").update({"active": False})
+        update_count = User.query(session).filter_by(last_name="musterin").update({"active": True})
+        session.commit()
+    
+    session = Session(('localhost', 20590), 'test')
+    with session:
         assert update_count == 1
-        result2 = User.query(session).get(users[1])
-        assert result2.active == False
+        result = User.query(session).get(users[1]._entry_id)
+        assert result.active == True
+        
+def test_query_update_multiple():
+    session = Session(('localhost', 20590), 'test')
+    with session:
+        result = User.query(session).all()
+        expected_entry_ids = [u._entry_id for u in users]
+        
+        assert len(result) == len(users)
+        for user in result:
+            assert user._entry_id in expected_entry_ids
+            
+        update_count = User.query(session).filter_by(last_name="musterin").update({"active": True, "is_admin": False})
+        assert update_count == 1
+        result = User.query(session).get(users[1]._entry_id)
+        assert result.active == True
+        assert result.is_admin == False

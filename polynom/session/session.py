@@ -62,7 +62,7 @@ class Session:
         set_clause = ', '.join(f"{col} = ?" for col in data.keys())
         values = list(data.values())
         values.append(model._entry_id)
-        
+    
         sql = f'UPDATE "{namespace}"."{entity}" SET {set_clause} WHERE _entry_id = ?'
         self._cursor.executeany("sql", sql, values, namespace=namespace)
 

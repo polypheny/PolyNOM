@@ -1,11 +1,15 @@
 from __future__ import annotations
+
+import logging
+
 from typing import Type, List, Optional, Dict, Any, TYPE_CHECKING, Tuple
 from polynom.schema.field import PrimaryKeyField, ForeignKeyField
 
 if TYPE_CHECKING:
     from polynom.session.session import Session
     from polynom.model import BaseModel
-
+    
+logger = logging.getLogger(__name__)
 
 class Query:
     def __init__(self, model_cls: Type[BaseModel], session: Session):
@@ -108,7 +112,6 @@ class Query:
                 if not hasattr(model, field_name):
                     raise AttributeError(f"{self._model_cls.__name__} has no attribute '{field_name}'")
                 setattr(model, field_name, value)
-            self._session._update(model)
             count += 1
 
         return count
@@ -179,9 +182,7 @@ class Query:
         self._session.flush()
         cursor = self._session._cursor
         cursor.execute(sql, values)
-        print(f"SQL is: {sql}")
         rows = cursor.fetchall()
-        print(f"Rows are {rows}")
         columns = [desc[0] for desc in cursor.description]
         results = []
         for row in rows:
@@ -205,7 +206,6 @@ class Query:
                     child_data[aliased_col] = val
 
                 if not all_null:
-                    print(f"Child data: {child_data}")
                     child = child_cls._from_row({
                         f._db_field_name: child_data[f"{alias}__{f._db_field_name}"]
                         for f in child_cls.schema._get_fields()
