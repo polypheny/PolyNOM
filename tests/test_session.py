@@ -236,3 +236,129 @@ def test_session_flush_outside_of_with():
     with pytest.raises(RuntimeError) as e:
         s.flush()
     assert 'must first be activated' in str(e.value)
+    
+def test_session_tracking_no_read_own_writes():
+    user = User('foo', 'foo@demo.ch', 'flo', 'brugger', True, False)
+    
+    s = Session(('localhost', 20590), 'pytest')
+    with s:
+        s.add(user)
+        assert user._is_active
+        s.commit()
+        assert not user._is_active
+        
+    s = Session(('localhost', 20590), 'pytest')
+    with s:
+        result = User.query(s).get(user._entry_id)
+        assert result
+        assert result._is_active
+        assert result.username == 'foo'
+        assert result._entry_id == user._entry_id
+        
+        result.username = 'foo_the_second'
+        s.commit()
+        assert not result._is_active
+        
+    s = Session(('localhost', 20590), 'pytest')
+    with s:
+        result = User.query(s).get(user._entry_id)
+        assert result
+        assert result.username == 'foo_the_second'
+        assert result._entry_id == user._entry_id
+        
+def test_session_tracking_read_own_writes():
+    user = User('foo', 'foo@demo.ch', 'flo', 'brugger', True, False)
+    
+    s = Session(('localhost', 20590), 'pytest')
+    with s:
+        s.add(user)
+        assert user._is_active
+        
+        result = User.query(s).get(user._entry_id)
+        assert not user._is_active
+        assert result
+        assert result._is_active
+        assert result.username == 'foo'
+        assert result._entry_id == user._entry_id
+        
+        result.username = 'foo_the_second'
+        s.commit()
+        assert not result._is_active
+        
+    s = Session(('localhost', 20590), 'pytest')
+    with s:
+        result = User.query(s).get(user._entry_id)
+        assert result
+        assert result.username == 'foo_the_second'
+        assert result._entry_id == user._entry_id
+        
+def test_session_tracking_change_after_add():
+    user = User('foo', 'foo@demo.ch', 'flo', 'brugger', True, False)
+    
+    s = Session(('localhost', 20590), 'pytest')
+    with s:
+        s.add(user)
+        assert user._is_active
+        user.username = 'foo_the_second'
+        s.commit()
+        assert not user._is_active
+        
+    s = Session(('localhost', 20590), 'pytest')
+    with s:
+        result = User.query(s).get(user._entry_id)
+        assert result
+        assert result.username == 'foo_the_second'
+        assert result._entry_id == user._entry_id
+        
+def test_session_tracking_change_after_add2():
+    user = User('foo', 'foo@demo.ch', 'flo', 'brugger', True, False)
+    
+    s = Session(('localhost', 20590), 'pytest')
+    with s:
+        s.add(user)
+        assert user._is_active
+        user.username = 'foo_the_second'
+        
+        result = User.query(s).get(user._entry_id)
+        assert not user._is_active
+        assert result
+        assert result._is_active
+        assert result.username == 'foo_the_second'
+        assert result._entry_id == user._entry_id
+
+def test_session_tracking_newest_version():
+    user = User('foo', 'foo@demo.ch', 'flo', 'brugger', True, False)
+    
+    s = Session(('localhost', 20590), 'pytest')
+    with s:
+        s.add(user)
+        assert user._is_active
+        
+        result = User.query(s).get(user._entry_id)
+        assert not user._is_active
+        assert result
+        assert result._is_active
+        assert result.username == 'foo'
+        assert result._entry_id == user._entry_id
+        
+        # user is no longer the newest version. this assignment should have no effect
+        with pytest.raises(AttributeError) as e:
+            user.username = 'foo_the_second'
+        assert 'no longer mapped' in str(e.value)
+        
+        result = User.query(s).get(user._entry_id)
+        assert result
+        assert result.username == 'foo'
+        assert result._entry_id == user._entry_id
+
+def test_session_tracking_empty_result():
+    user = User('foo', 'foo@demo.ch', 'flo', 'brugger', True, False)
+    
+    s = Session(('localhost', 20590), 'pytest')
+    with s:
+        s.add(user)
+        assert user._is_active
+        
+        result = User.query(s).get('this_is_not_a_valid_entry_id')
+        assert user._is_active
+        assert not result

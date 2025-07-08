@@ -14,7 +14,18 @@ class BaseModel:
         self._entry_id = _entry_id
         self._original_state = deepcopy(self.__dict__)
         self._is_active = True
-
+        
+    def __setattr__(self, name, value):
+        if name == '_is_active':
+            object.__setattr__(self, name, value)
+            return
+        
+        if getattr(self, "_is_active", True):
+            object.__setattr__(self, name, value)
+            return
+            
+        raise AttributeError(f"This instance of entry {self._entry_id} is no longer mapped: it is either outside its session, deleted within its session, or replaced by a query result.")
+      
     @classmethod
     def query(cls, session):
         return Query(cls, session)

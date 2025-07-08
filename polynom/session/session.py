@@ -102,7 +102,7 @@ class Session:
         self._throw_if_not_active()
         
         if not model._is_active:
-            raise ValueError('The passed model originates from an already completed session and should be discarded.')
+            raise ValueError('The passed model either originates from another session or is no longer the newest version in this session.')
       
         if tracking:
             # add all the children to the session too
@@ -145,7 +145,12 @@ class Session:
             self.add(child)
             
     def _track(self, model):
+        old = self._tracked_models.get(model._entry_id)
+        if old:
+            logger.debug(f'Tracked entry {old._entry_id} replaced by query result in session {self._session_id}')
+            old._is_active = False
         self._tracked_models[model._entry_id] = model
+
     
     def _track_all(self, models):
         for model in models:
