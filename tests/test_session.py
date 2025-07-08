@@ -362,3 +362,23 @@ def test_session_tracking_empty_result():
         result = User.query(s).get('this_is_not_a_valid_entry_id')
         assert user._is_active
         assert not result
+        
+def test_session_invalidation_on_delete():
+    user = User('foo', 'foo@demo.ch', 'flo', 'brugger', True, False)
+    
+    s = Session(('localhost', 20590), 'pytest')
+    with s:
+        s.add(user)
+        assert user._is_active
+        s.delete(user)
+        assert not user._is_active
+        
+def test_session_stays_valid_on_flush():
+    user = User('foo', 'foo@demo.ch', 'flo', 'brugger', True, False)
+    
+    s = Session(('localhost', 20590), 'pytest')
+    with s:
+        s.add(user)
+        assert user._is_active
+        s.flush()
+        assert user._is_active
