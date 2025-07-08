@@ -1,6 +1,7 @@
 import pytest
 from polynom.session.session import Session
 from polynom.session.initializer import Initializer
+from polynom.query.query import Query
 from tests.schema import UserSchema, BikeSchema
 from tests.model import User, Bike
 
@@ -236,7 +237,7 @@ def test_query_update_single():
     session = Session(('localhost', 20590), 'test')
     with session:
         assert update_count == 1
-        result = User.query(session).get(users[1]._entry_id)
+        result = User.query(session).get(users[3]._entry_id)
         assert result.active == True
         
 def test_query_update_multiple():
@@ -251,6 +252,28 @@ def test_query_update_multiple():
             
         update_count = User.query(session).filter_by(last_name="musterin").update({"active": True, "is_admin": False})
         assert update_count == 1
-        result = User.query(session).get(users[1]._entry_id)
+        result = User.query(session).get(users[3]._entry_id)
         assert result.active == True
         assert result.is_admin == False
+
+def test_query_init_session():
+    Bike('Giant', 'Defy Advanced 1', users[0]._entry_id),
+    session = Session(('localhost', 20590), 'test')
+    with session:
+        query = Bike.query(session)
+        assert query._session == session
+
+def test_query_init_model_cls():
+    Bike('Giant', 'Defy Advanced 1', users[0]._entry_id),
+    session = Session(('localhost', 20590), 'test')
+    with session:
+        query = Bike.query(session)
+        assert query._model_cls == Bike
+
+def test_query_init_distinct():
+    Bike('Giant', 'Defy Advanced 1', users[0]._entry_id),
+    session = Session(('localhost', 20590), 'test')
+    with session:
+        query = Bike.query(session)
+        assert not query._distinct
+        
