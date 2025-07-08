@@ -187,6 +187,7 @@ class Session:
             if diff:
                 self._update(model)
                 self._update_change_log(model, diff)
+            model._update_snapshot()
         logger.debug(f"Session {self._session_id} flushed to polypheny.")
 
     def commit(self):
