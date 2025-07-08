@@ -12,7 +12,7 @@ lang: en
 The `Application` class represents an individual application that interacts with a Polypheny instance to read and write data.
 An `Application`:
 
-- Operates within a single Polypheny `Instance`
+- Operates on a single Polypheny `Instance`
 - Manages one or more `Session` objects
 - Provides authentication and configuration settings for the connection
 - Handles optional Docker lifecycle management for isolated environments
@@ -27,20 +27,20 @@ Application(
     password: str = '',
     transport: str = 'plain',
     use_docker: bool = True,
-    migrate: bool = True,
+    migrate: bool = False,
     stop_container: bool = False,
     remove_container: bool = False
 )
 ```
 
 - `app_uuid` (`str`, required):  
-  A unique identifier for the application instance. This identifier should be persitent across restarts and reboots and uniquely represent the product the application to be instantiated is used in. 
+  A unique identifier for the application. This identifier should be persitent across restarts and reboots and uniquely represent the product the application to be instantiated is used in. 
 
 - `address`:  
-  Besides TCP/IP Polypheny supports advanced transport methods such as unix sockets. This parameter should contain an adress matching the specified transport method. For TCP/IP the adress is a host, port tuple. For unix sockets this is a unix socket path specification.
+  Besides TCP/IP Polypheny supports advanced transport methods such as unix sockets. This parameter specifies an adress matching the specified transport method. For TCP/IP the adress is a host, port tuple. For unix sockets this is a unix socket path specification.
 
 - `user` (`str`, optional):  
-  Username for authentication on the Polpyheny instance. If not specified the default username 'pa' available on all polypheny deployments is used.
+  Username for authentication on the Polypheny instance. If not specified the default username 'pa' available on all polypheny deployments is used.
 
 - `password` (`str`, optional):  
   Password for authentication on the Polpyheny instance. If not specified the password of the default user is used. This is the empty string.
@@ -49,10 +49,10 @@ Application(
   Transport method to be used to communicate with the Polypheny instance. As of now 'plain' and 'unix' are available were 'plain' refers to TCP/IP.
 
 - `use_docker` (`bool`, optional):  
-  Wether to use Docker to manage the Polypheny instance. When set to 'True' PolyNOM searches for a Docker container running a Polypheny instance. If no container is not found, a new one is created on which Polypheny is deployed automatically. If a container is present but stopped, the container will be started. If not specified, this default to 'True'. The container running Polypheny must be named 'polypheny'. 
+  Wether to use Docker to manage the Polypheny instance. When set to 'True' PolyNOM searches for a Docker container running a Polypheny instance. If no container is found, a new one is created on which Polypheny is deployed automatically. If a container is present but stopped, the container will be started. If not specified, this defaults to 'True'. The container running Polypheny must be named 'polypheny'. 
 
 - `migrate` (`bool`, optional):  
-  Whether to trigger automatic schema migration. If enabled, PolyNOM automatically compares the schema of the application with the one currently present on the Polypheny instance. Adjustments to the schmea are then made on instantiation of this application object. Defaults to `False`.
+  Wether to trigger automatic schema migration. If enabled, PolyNOM automatically compares the schema of the application with the one currently present on the Polypheny instance. Adjustments to the schmea are then made on instantiation of this application object. Defaults to `False`.
 
 - `stop_container` (`bool`, optional):  
   If `True`, stops the Docker container running the Polypheny instance when the application context ends. Defaults to `False`.

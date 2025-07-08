@@ -72,19 +72,19 @@ Deletes multiple models. Equivalent to calling `delete()` repeatedly.
 
 #### `flush()`
 
-Writes all cached updates to tracked models to the database **without** commiting. The flush operation is called automatically before query execution were required.
+Writes all cached updates to tracked models to the database **without** commiting. The flush operation is called automatically before query execution if required.
 
 ---
 
 #### `commit()`
 
-Finalizes the session and commits all pending inserts, updates, and deletions to the database. This invalidates all tracked models and finalizes the session. After this operation any further operations on the session or modifications on the invalidated models raise errors.
+Finalizes the session and commits all pending inserts, updates, and deletions to the database. This invalidates all tracked models and finalizes the session. After this operation any further operations on the session or modifications of the invalidated models raise errors.
 
 ---
 
 #### `rollback()`
 
-Discards all changes made as part of this session. This invalidates all tracked models and finalizes the session. After this operation any further operations on the session or modifications on the invalidated models raise errors.
+Discards all changes made as part of this session. This invalidates all tracked models and finalizes the session. After this operation any further operations on the session or modifications of the invalidated models raise errors.
 
 ---
 
@@ -116,7 +116,7 @@ from myproject.bike.model import Bike
 APP_UUID = 'a8817239-9bae-4961-a619-1e9ef5575eff'
 
 with Application(APP_UUID, ('localhost', 20590)) as app:
-    with Session(app, log_user="alice") as session:
+    with Session(app) as session:
         bike = Bike('Canyon', 'Aeroad', 'CFR Di2', 7.04, 8849)
         session.add(bike)
         bike.price = 7000

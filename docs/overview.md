@@ -12,7 +12,7 @@ lang: en
 The Polypheny Native Object Mapper (PolyNOM) ecosystem is structured into four layers:
 
 1. **Instances**  
-   Deployments of the Polypheny database management system.  
+   Deployment of the Polypheny database management system.  
 
 2. **Applications**  
    Individual applications that operate on an instance of Polypheny. 
@@ -20,7 +20,7 @@ The Polypheny Native Object Mapper (PolyNOM) ecosystem is structured into four l
    - Multiple applications can access the same instance.  
 
 3. **Sessions**  
-   Sessions represent isolated connections within an application.  
+   Sessions represent isolated execuiton environments within an application.  
    - Zero or more sessions can exist within an application.  
    - Each session has its own connection to the instance.  
    - Operations within a session are isolated from other sessions.
@@ -33,7 +33,7 @@ The Polypheny Native Object Mapper (PolyNOM) ecosystem is structured into four l
 
 ## Context Management
 
-For each layer in the PolyNOM ecosystem, a corresponding Python class is provided to encapsulate the relevant functionality. Each layer classe can only be instantiated in the context of their respective higher layer class. The `Application` connects to an `Instance`. A `Session` must be created from an active `Application`. A `Model` must be created within an active `Session`. All layer classes implement Python’s context manager protocol (`__enter__` / `__exit__`). This allows usage with the `with` statement to guarantee proper resource handling, maintain correct contextual relationships, automatically clean up or close resources when exiting a scope.
+For each layer in the PolyNOM ecosystem, a corresponding python class is provided to encapsulate the relevant functionality. Each layer class can only be instantiated in the context of its respective higher layer class. The `Application` connects to an `Instance`. A `Session` must be created inside an active `Application`. A `Model` must be created within an active `Session`. All layer classes implement Python’s context manager protocol (`__enter__` / `__exit__`). This allows usage with the `with` statement to guarantee proper resource handling, maintain correct contextual relationships and to automatically clean up or close resources when exiting a scope.
 
 ### Example:
 
@@ -46,7 +46,7 @@ APP_UUID = 'a8817239-9bae-4961-a619-1e9ef5575eff'
 
 app = Application(APP_UUID, ('localhost', 20590))
 with app:
-    session = Session(app, 'demo_user')
+    session = Session(app)
     with session:
         bike = Bike('Giant', 'Defy', 'Advanced 2', 8.6, 2000)
         session.add(bike)
