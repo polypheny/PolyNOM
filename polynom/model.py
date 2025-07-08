@@ -2,7 +2,7 @@ import logging
 import uuid as uuidlib
 from typing import Any, Type, TypeVar
 from copy import deepcopy
-from polynom.query.query import Query
+from polynom.query import Query
 
 T = TypeVar("T")
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ class BaseModel:
         self._throw_invalid()
         
     def _throw_invalid(self):
-        message = f"This instance of entry {self._entry_id} is no longer mapped:it is either outside its session, deleted within its session, or replaced by a query result"
+        message = f"This instance of entry {self._entry_id} is no longer mapped: it is either outside its session, deleted within its session, or replaced by a query result"
         logger.debug(message)
         raise AttributeError(message)
         

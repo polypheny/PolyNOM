@@ -4,15 +4,19 @@ import polypheny
 import json
 import uuid
 from json import dumps
+from typing import Any, TYPE_CHECKING
 from datetime import datetime
 from enum import Enum, auto
 from dataclasses import dataclass, field
 from polynom.model import BaseModel
-from polynom.reflection.reflection import ChangeLog
+from polynom.reflection import ChangeLog
 from polynom.schema.relationship import Relationship
 from polynom.constants import DEFAULT_TRANSPORT, DEFAULT_USER, DEFAULT_PASS
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from polynom.application import Application
 
 class _SessionState(Enum):
     INITIALIZED = auto()
@@ -21,27 +25,37 @@ class _SessionState(Enum):
 
 @dataclass
 class Session:
-    _address: any
-    _log_user: str
-    _db_user: str = DEFAULT_USER
-    _password: str = DEFAULT_PASS
-    _transport: str = DEFAULT_TRANSPORT
-    _session_id: uuid.UUID = field(default_factory=uuid.uuid4)
+    def __init__(
+        self,
+        application: 'Application',
+        log_user: str,
+        session_id: uuid.UUID = None
+    ):
 
-    _conn: any = field(init=False, default=None)
-    _cursor: any = field(init=False, default=None)
-    _state: _SessionState = field(init=False, default=_SessionState.INITIALIZED)
-    _tracked_models: dict[str, BaseModel] = field(default_factory=dict, init=False)
+        from polynom.application import Application
+        if not application._initialized:
+            message = "The application must be initialized before its sessions"
+            logger.error(message)
+            raise ValueError(message)
+            
+        self._application = application
+        self._log_user = log_user
+        self._session_id = session_id or uuid.uuid4()
+
+        self._conn = None
+        self._cursor = None
+        self._state = _SessionState.INITIALIZED
+        self._tracked_models: dict[str, BaseModel] = {}
 
     def __enter__(self):
         if self._state == _SessionState.ACTIVE:
             return
             
         self._conn = polypheny.connect(
-            self._address,
-            username=self._db_user,
-            password=self._password,
-            transport=self._transport
+            self._application._address,
+            username=self._application._user,
+            password=self._application._password,
+            transport=self._application._transport
         )
         self._cursor = self._conn.cursor()
         self._state = _SessionState.ACTIVE
@@ -196,18 +210,22 @@ class Session:
         self.flush()     
         self._conn.commit()
 
-        for model in self._tracked_models.values():
-            # check if the model has a child or not and then only commit that
-            model._is_active = False
+        # check if the model has a child or not and then only commit that
+        self._invalidate_models()
             
         self._state = _SessionState.COMPLETED
         logger.debug(f"Session {self._session_id} committed.")
 
     def rollback(self):
         self._throw_if_not_active()
+        self._invalidate_models()
         self._conn.rollback()
         self._state = _SessionState.COMPLETED
         logger.debug(f"Session {self._session_id} rolled back.")
+        
+    def _invalidate_models(self):
+        for model in self._tracked_models.values():
+            model._is_active = False
 
     def get_session_state(self):
         return self._state

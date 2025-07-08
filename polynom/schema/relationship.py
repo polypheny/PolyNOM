@@ -51,7 +51,7 @@ class Relationship:
         if not self._back_populates or not self._owner_class:
             raise ValueError("Cannot infer target_model without 'back_populates' and 'owner_class' set")
 
-        from orm.model import BaseModel
+        from polynom.model import BaseModel
         for model_cls in BaseModel.__subclasses__():
             for attr_name, attr in vars(model_cls).items():
                 if isinstance(attr, Relationship):

@@ -1,5 +1,5 @@
+from __future__ import annotations
 import logging
-from polynom.session.session import Session
 
 logger = logging.getLogger(__name__)
 

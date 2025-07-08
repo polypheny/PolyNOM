@@ -6,7 +6,7 @@ from typing import Type, List, Optional, Dict, Any, TYPE_CHECKING, Tuple
 from polynom.schema.field import PrimaryKeyField, ForeignKeyField
 
 if TYPE_CHECKING:
-    from polynom.session.session import Session
+    from polynom.session import Session
     from polynom.model import BaseModel
     
 logger = logging.getLogger(__name__)

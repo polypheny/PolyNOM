@@ -1,7 +1,6 @@
 import pytest
-from polynom.session.session import Session, _SessionState
-from polynom.session.initializer import Initializer
-from polynom.query.query import Query
+from polynom.session import Session, _SessionState
+from polynom.query import Query
 from tests.model import User, Bike
 
 def test_model_init_has_entry_id():
