@@ -37,28 +37,30 @@ Session(
 A session must be activated via a context block to become operational. Outside the context block, session operations will raise errors.
 
 ```python
-with app.create_session(log_user="alice") as session:
-    session.add(my_model) # this will work
+with Session(app, log_user="alice") as session:
+    session.add(my_model)
 ```
 
 ## Operations
 
 #### `add(model: BaseModel, tracking=True)`
-Adds a model instance to the session, preparing it for insertion on the underlying polypheny instance.
+Adds a model instance to the session, preparing it for insertion on the underlying polypheny instance. Changes to the added model are automatically tracked triggering updates on the underlying Polypheny instance.
 
-- `tracking`: Wether to track changes performed to the added model after insertions. Changes to the model then trigger automatic updates on the associated entity on the underlying Polypheny instance. This is the default behaviour. Setting this to 'False' is considered experimental and thus not recommended for most use cases.
+- `tracking` (`bool`, optional): Wether to track changes performed to the added model after insertions. Changes to the model then trigger automatic updates on the associated entity on the underlying Polypheny instance. This is the default behaviour. Setting this to 'False' is considered experimental and thus not recommended for most use cases.
 
 ---
 
-#### `add_all(models: Iterable[BaseModel])`
+#### `add_all(models: Iterable[BaseModel], tracking=True)`
 
 Adds multiple models to the session. Equivalent to calling `add()` repeatedly.
+
+- `tracking` (`bool`, optional): Wether to track changes performed to the added model after insertions. Changes to the model then trigger automatic updates on the associated entity on the underlying Polypheny instance. This is the default behaviour. Setting this to 'False' is considered experimental and thus not recommended for most use cases.
 
 ---
 
 #### `delete(model: BaseModel)`
 
-Marks a model for deletion from the database. The model must have a valid `_entry_id`.
+Marks a model for deletion from the database. After this operation, changes to the model are no longer tracked and the model is invalidated.
 
 ---
 
@@ -70,41 +72,29 @@ Deletes multiple models. Equivalent to calling `delete()` repeatedly.
 
 #### `flush()`
 
-Writes all in-session modifications (updates to tracked models) to the database, but does **not** commit the transaction.
-
-- Detects model changes via `model._diff()`
-- Persists diffs
-- Updates associated change logs
+Writes all cached updates to tracked models to the database **without** commiting. The flush operation is called automatically before query execution were required.
 
 ---
 
 #### `commit()`
 
-Finalizes the session and commits all pending inserts, updates, and deletions to the database.
-
-- Calls `flush()` internally.
-- Invalidates all tracked models after commit.
-- Marks session as `COMPLETED`.
+Finalizes the session and commits all pending inserts, updates, and deletions to the database. This invalidates all tracked models and finalizes the session. After this operation any further operations on the session or modifications on the invalidated models raise errors.
 
 ---
 
 #### `rollback()`
 
-Discards all changes made during the session.
-
-- Invalidates all tracked models.
-- Rolls back the transaction.
-- Marks session as `COMPLETED`.
+Discards all changes made as part of this session. This invalidates all tracked models and finalizes the session. After this operation any further operations on the session or modifications on the invalidated models raise errors.
 
 ---
 
 #### `get_session_state() → _SessionState`
 
-Returns the current state of the session:
+Returns the current state of the session.
 
-- `INITIALIZED`
-- `ACTIVE`
-- `COMPLETED`
+- `INITIALIZED`: The session had been created but not yet activated.
+- `ACTIVE`: The session is active.
+- `COMPLETED`: The session had been finalized by either a `commit()` or a `rollback()`. Any further session operations raise errors. 
 
 ---
 
@@ -115,3 +105,20 @@ If the relationship is configured with `"delete-orphan"`, the child will also be
 
 - `parent`: The parent model instance.
 - `attr_name`: The name of the relationship attribute to detach.
+
+
+## Examples
+```python
+from polynom.application import Application
+from polynom.session import Session
+from myproject.bike.model import Bike
+
+APP_UUID = 'a8817239-9bae-4961-a619-1e9ef5575eff'
+
+with Application(APP_UUID, ('localhost', 20590)) as app:
+    with Session(app, log_user="alice") as session:
+        bike = Bike('Canyon', 'Aeroad', 'CFR Di2', 7.04, 8849)
+        session.add(bike)
+        bike.price = 7000
+        session.commit()
+```

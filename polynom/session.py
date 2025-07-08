@@ -38,7 +38,7 @@ class Session:
             raise ValueError(message)
             
         self._application = application
-        self._log_user = log_user
+        self._log_user: str = log_user
         self._session_id = uuid.uuid4()
 
         self._conn = None
@@ -133,10 +133,10 @@ class Session:
         sql = f'INSERT INTO "{namespace}"."{entity}" ({columns}) VALUES ({placeholders})'
         self._cursor.executeany("sql" ,sql, values, namespace=namespace)
             
-    def add_all(self, models):
+    def add_all(self, models, tracking=True):
         # session state is checked by add
         for model in models:
-            self.add(model)
+            self.add(model, tracking=tracking)
             
     def _add_related_models(self, model):
         for attr in vars(model.__class__):

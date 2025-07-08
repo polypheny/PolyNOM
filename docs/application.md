@@ -66,25 +66,25 @@ from polynom.application import Application
 
 APP_UUID = 'a8817239-9bae-4961-a619-1e9ef5575eff'
 
-'''
-Create an application connected to a Polypheny Docker container.
-If absent, the container as well as Polypheny will be automatically deployed.
-'''
+# Create an application connected to a Polypheny Docker container. If absent, the container as well as Polypheny will be automatically deployed.
+
 app = Application(APP_UUID, ('localhost', 20590))
 with app:
    # do something
 
-'''
-Create an application connected to a Polypheny instance running on localhost.
-As this instance is externally managed, the Docker features are disabled.
-'''
+# Equivalent to the one above.
+
+with Application(APP_UUID, ('localhost', 20590)) as app:
+   # do something
+
+# Create an application connected to a Polypheny instance running on localhost. As this instance is externally managed, the Docker features are disabled.
+
 app = Application(APP_UUID, ('localhost', 20590), use_docker=False)
 with app:
    # do something
 
-'''
-Use a specific username and password for authorization on the Polypheny instance.
-'''
+# Use a specific username and password for authorization on the Polypheny instance.
+
 app = Application(APP_UUID, ('localhost', 20590), user='admin', password='admin')
 with app:
    # do something
