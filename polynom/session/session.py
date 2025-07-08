@@ -47,6 +47,17 @@ class Session:
         self._state = _SessionState.ACTIVE
         logger.debug(f"Session {self._session_id} started.")
         return self
+        
+    def _throw_if_not_active(self):
+        if self._state == _SessionState.INITIALIZED:
+            message = f'Session {self._session_id} must first be activated by using it in a "with" block'
+            logger.error(message)
+            raise RuntimeError(message)
+            
+        if self._state == _SessionState.COMPLETED:
+            message = f'This operation cannot be performed by the completed Session {self._session_id}'
+            logger.error(message)
+            raise RuntimeError(message)
 
     def _update(self, model):
         entity = model.schema.entity_name
@@ -66,7 +77,7 @@ class Session:
         sql = f'UPDATE "{namespace}"."{entity}" SET {set_clause} WHERE _entry_id = ?'
         self._cursor.executeany("sql", sql, values, namespace=namespace)
 
-    def _update_change_log(self, model, diff: dict):
+    def _update_change_log(self, model, diff: dict):   
         field_map = model.schema._get_field_map()
         change_data = {}
         for field_name, (old_value, new_value) in diff.items():
@@ -88,38 +99,50 @@ class Session:
         
 
     def add(self, model, tracking=True):
+        self._throw_if_not_active()
+        
         if not model._is_active:
             raise ValueError('The passed model originates from an already completed session and should be discarded.')
       
         if tracking:
             # add all the children to the session too
             self._track(model)
-            for attr in vars(model.__class__):
-                rel = inspect.getattr_static(model.__class__, attr)
-                if isinstance(rel, Relationship):
-                    if "save-update" in (rel._cascade or "") or "all" in (rel._cascade or ""):
-                        child = getattr(model, attr)
-                        if child:
-                            if getattr(child, "_session", None) is None:
-                                child._session = self
-                            self.add(child)
-
+            self._add_related_models(model)
+        
         entity = model.schema.entity_name
         namespace = model.schema.namespace_name
         data = model._to_insert_dict()
 
         columns = ', '.join(data.keys())
         placeholders = ', '.join(['?'] * len(data))
-
         values = tuple(data.values())
         
-        if model._is_active:
-            sql = f'INSERT INTO "{namespace}"."{entity}" ({columns}) VALUES ({placeholders})'
-            self._cursor.executeany("sql" ,sql, values, namespace=namespace)
+        sql = f'INSERT INTO "{namespace}"."{entity}" ({columns}) VALUES ({placeholders})'
+        self._cursor.executeany("sql" ,sql, values, namespace=namespace)
             
     def add_all(self, models):
+        # session state is checked by add
         for model in models:
             self.add(model)
+            
+    def _add_related_models(self, model):
+        for attr in vars(model.__class__):
+            rel = inspect.getattr_static(model.__class__, attr)
+            if not isinstance(rel, Relationship):
+                continue
+                
+            cascade = rel._cascade or ""
+            if "save-update" not in cascade and "all" not in cascade:
+                continue
+                
+            child = getattr(model, attr)
+            if not child:
+                continue
+                
+            if getattr(child, "_session", None) is None:
+                child._session = self
+                
+            self.add(child)
             
     def _track(self, model):
         self._tracked_models[model._entry_id] = model
@@ -135,6 +158,8 @@ class Session:
         return
 
     def delete(self, model):
+        self._throw_if_not_active()
+        
         entity = model.schema.entity_name
         namespace = model.schema.namespace_name
         sql = f'DELETE FROM "{namespace}"."{entity}" WHERE _entry_id = ?'
@@ -143,10 +168,12 @@ class Session:
             model._is_active = False
 
     def delete_all(self, models):
+        # session state is checked by delete
         for model in models:
             self.delete(model)
             
     def flush(self):
+        self._throw_if_not_active()
         for model in self._tracked_models.values():
             if not model._is_active:
                 continue
@@ -158,9 +185,8 @@ class Session:
         logger.debug(f"Session {self._session_id} flushed to polypheny.")
 
     def commit(self):
-        if self._state != _SessionState.ACTIVE:
-            raise RuntimeError(f"Cannot commit in session state {self._state.name}.")
-
+        self._throw_if_not_active()
+        
         self.flush()     
         self._conn.commit()
 
@@ -172,8 +198,7 @@ class Session:
         logger.debug(f"Session {self._session_id} committed.")
 
     def rollback(self):
-        if self._state != _SessionState.ACTIVE:
-            raise RuntimeError(f"Cannot rollback in session state {self._state.name}.")
+        self._throw_if_not_active()
         self._conn.rollback()
         self._state = _SessionState.COMPLETED
         logger.debug(f"Session {self._session_id} rolled back.")
@@ -182,6 +207,7 @@ class Session:
         return self._state
 
     def detach_child(self, parent: BaseModel, attr_name: str):
+        self._throw_if_not_active()
         rel = inspect.getattr_static(parent.__class__, attr_name)
         if not isinstance(rel, Relationship):
             raise TypeError(f"{attr_name} is not a Relationship field")
@@ -202,6 +228,7 @@ class Session:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._state == _SessionState.ACTIVE:
+            logger.debug(f"Automatically rolling back Session {self._session_id} before exit.")
             self.rollback()
         if self._cursor:
             self._cursor.close()
