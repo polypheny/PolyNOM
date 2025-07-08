@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class Application:
     def __init__(self, app_uuid: str, address, user: str = cst.DEFAULT_USER,
                  password: str = cst.DEFAULT_PASS, transport: str = cst.DEFAULT_TRANSPORT,
-                 use_docker: bool = True, migrate: bool = True,
+                 use_docker: bool = True, migrate: bool = False,
                  stop_container: bool = False, remove_container: bool = False):
         
         self._app_uuid = app_uuid
@@ -96,7 +96,7 @@ class Application:
     def _verify_schema(self):
         self._process_schema(SchemaSnapshotSchema)
 
-        session = Session(self, cst.SYSTEM_USER_NAME)
+        session = Session(self)
         with session:
             logger.debug(f"Reading schema snapshot from database for application {self._app_uuid}.")
             previous = SchemaSnapshot.query(session).get(self._app_uuid)
@@ -105,7 +105,7 @@ class Application:
             if not previous:
                 logger.debug(f"No schema snapshot found for application {self._app_uuid}. Creating a first one.")
                 previous = SchemaSnapshot(current_snapshot, _entry_id=self._app_uuid)
-                session.add(previous, tracking=False)
+                session.add(previous)
                 session.commit()
                 return
 

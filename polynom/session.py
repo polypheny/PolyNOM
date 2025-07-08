@@ -28,8 +28,7 @@ class Session:
     def __init__(
         self,
         application: 'Application',
-        log_user: str,
-        session_id: uuid.UUID = None
+        log_user: str = None,
     ):
 
         from polynom.application import Application
@@ -40,7 +39,7 @@ class Session:
             
         self._application = application
         self._log_user = log_user
-        self._session_id = session_id or uuid.uuid4()
+        self._session_id = uuid.uuid4()
 
         self._conn = None
         self._cursor = None
@@ -200,7 +199,8 @@ class Session:
             diff = model._diff()
             if diff:
                 self._update(model)
-                self._update_change_log(model, diff)
+                if self._log_user:
+                    self._update_change_log(model, diff)
             model._update_snapshot()
         logger.debug(f"Session {self._session_id} flushed to polypheny.")
 
