@@ -22,6 +22,13 @@ A schema defines:
 - The fields and their data types.
 - The type and properties of the fields such as primary keys, foreign keys or unique constraints.
 
+Optionally:
+
+- The name of the namespace in which the corresponding entity should be allocated.
+- The previous name of this entity. This parameter is used during the automatic schema migration to rename the entity on the underlying polypheny instance.
+
+All optional parameters can be omitted if not required.
+
 Each schema class must inherit from `BaseSchema` and must be registered using `register_schema()`. An example of a schema to store road bikes is given below.
 
 ```python
@@ -31,7 +38,9 @@ from polynom.schema.polytypes import VarChar, Decimal
 from polynom.schema.schema import BaseSchema
 
 class BikeSchema(BaseSchema):
+    namespace_name = 'vehicles' # optional
     entity_name = 'Bike'
+    previous_name = 'Bicycles' # optional; only for renaming during automatic schema migration
     fields = [
         Field('brand', VarChar(50), nullable=False),
         Field('series', VarChar(50), nullable=False),
