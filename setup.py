@@ -42,7 +42,7 @@ def load_requirements(filename='requirements.txt', exclude=None):
         ]
 
 setup(
-    name='polynom',
+    name='polypheny-polynom',
     version=version,
     description='Object Mapper for Polypheny',
     long_description=readme(),
