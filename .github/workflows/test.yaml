@@ -1,4 +1,4 @@
-name: Run Tests with Docker
+name: Run Tests
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
 
 jobs:
   test:
-    name: Run pytest (with Docker)
+    name: Run pytest
     runs-on: ubuntu-latest
 
     steps:
@@ -22,13 +22,13 @@ jobs:
         with:
           python-version: 3.11
 
-      - name: Install Docker (official script)
+      - name: Install Docker
         run: |
           curl -fsSL https://get.docker.com -o get-docker.sh
           sudo sh get-docker.sh
           sudo usermod -aG docker $USER
 
-      - name: Verify Docker is working
+      - name: Verify Docker
         run: |
           docker version
           docker info

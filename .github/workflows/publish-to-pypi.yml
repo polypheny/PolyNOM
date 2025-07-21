@@ -1,4 +1,4 @@
-name: Publish Python 🐍 distributions 📦 to PyPI
+name: Publish to PyPI
 
 on:
   release:
@@ -28,7 +28,9 @@ jobs:
           echo "${GITHUB_REF#refs/tags/}" > polyNOM-version.txt
 
       - name: Create MANIFEST.in
-        run: echo "include polyNOM-version.txt" > MANIFEST.in
+        run: |
+          echo "include polyNOM-version.txt" > MANIFEST.in
+          echo "include requirements.txt" >> MANIFEST.in
 
       - name: Install build tools
         run: pip install --upgrade build twine
@@ -38,6 +40,8 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
 
       # Uncomment this block to publish to TestPyPI
       # - name: Publish to TestPyPI
