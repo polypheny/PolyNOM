@@ -28,7 +28,9 @@ jobs:
           echo "${GITHUB_REF#refs/tags/}" > polyNOM-version.txt
 
       - name: Create MANIFEST.in
-        run: echo "include polyNOM-version.txt" > MANIFEST.in
+        run: |
+          echo "include polyNOM-version.txt" > MANIFEST.in
+          echo "include requirements.txt" >> MANIFEST.in
 
       - name: Install build tools
         run: pip install --upgrade build twine
