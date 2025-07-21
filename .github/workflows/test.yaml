@@ -1,4 +1,4 @@
-name: Run Tests
+name: Run Tests with Docker
 
 on:
   push:
@@ -13,18 +13,6 @@ jobs:
     name: Run pytest (with Docker)
     runs-on: ubuntu-latest
 
-    services:
-      docker:
-        image: docker:20.10.16
-        options: >-
-          --privileged
-        ports:
-          - 20590:20590
-          - 7659:7659
-          - 80:80
-          - 8081:8081
-          - 8082:8082
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -34,16 +22,16 @@ jobs:
         with:
           python-version: 3.11
 
-      - name: Install Docker CLI
+      - name: Install Docker (official script)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y docker.io
-          sudo systemctl start docker
-          docker --version
-
-      - name: Add GitHub Actions user to docker group
-        run: |
+          curl -fsSL https://get.docker.com -o get-docker.sh
+          sudo sh get-docker.sh
           sudo usermod -aG docker $USER
+
+      - name: Verify Docker is working
+        run: |
+          docker version
+          docker info
 
       - name: Install Python dependencies
         run: |
