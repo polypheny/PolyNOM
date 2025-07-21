@@ -9,7 +9,7 @@ APP_UUID = 'a8817239-9bae-4961-a619-1e9ef5575eff'
 
 @pytest.fixture(scope='module')
 def app():
-    app = Application(APP_UUID, ('localhost', 20590), use_docker=False)
+    app = Application(APP_UUID, ('localhost', 20590), use_docker=True, stop_container=True)
     with app:
         yield app
 

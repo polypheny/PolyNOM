@@ -11,7 +11,6 @@ from dataclasses import dataclass, field
 from polynom.model import BaseModel
 from polynom.reflection import ChangeLog
 from polynom.schema.relationship import Relationship
-from polynom.constants import DEFAULT_TRANSPORT, DEFAULT_USER, DEFAULT_PASS
 
 logger = logging.getLogger(__name__)
 

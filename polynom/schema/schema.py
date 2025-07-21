@@ -1,10 +1,10 @@
 from polynom.schema.field import Field, PrimaryKeyField
 from polynom.schema.polytypes import VarChar
-from polynom.constants import DEFAULT_NAMESPACE
+import polynom.config as cfg
 
 class BaseSchema:
     entity_name: str
-    namespace_name: str = DEFAULT_NAMESPACE
+    namespace_name: str = cfg.get(cfg.DEFAULT_NAMESPACE)
     previous_name: str = None
     _base_fields = [
         PrimaryKeyField('_entry_id', VarChar(36), unique=True)
@@ -27,7 +27,7 @@ class BaseSchema:
     def _to_dict(cls):
         return {
             "entity_name": cls.entity_name,
-            "namespace_name": getattr(cls, "namespace_name", DEFAULT_NAMESPACE),
+            "namespace_name": getattr(cls, "namespace_name", cfg.get(cfg.DEFAULT_NAMESPACE)),
             "fields": [field._to_dict() for field in cls._get_fields()]
         }
             

@@ -3,11 +3,11 @@ from polynom.schema.schema_registry import register_schema
 from polynom.schema.schema import BaseSchema
 from polynom.schema.field import Field
 from polynom.schema.polytypes import Timestamp, Text, Json
-from polynom.constants import INTERNAL_NAMESPACE, CHANGE_LOG_TABLE, SNAPSHOT_TABLE
+import polynom.config as cfg
 
 class ChangeLogSchema(BaseSchema):
-    entity_name = CHANGE_LOG_TABLE
-    namespace_name = INTERNAL_NAMESPACE
+    entity_name = cfg.get(cfg.CHANGE_LOG_TABLE)
+    namespace_name = cfg.get(cfg.INTERNAL_NAMESPACE)
     fields = [
         Field('modified_entry_id', Text(), nullable=False),
         Field('modified_entity_name', Text(), nullable=False),
@@ -28,8 +28,8 @@ class ChangeLog(BaseModel):
         self.changes = changes
 
 class SchemaSnapshotSchema(BaseSchema):
-    entity_name = SNAPSHOT_TABLE
-    namespace_name = INTERNAL_NAMESPACE
+    entity_name = cfg.get(cfg.SNAPSHOT_TABLE)
+    namespace_name = cfg.get(cfg.INTERNAL_NAMESPACE)
     fields = [
         Field('snapshot', Json(), nullable=False),
     ]
