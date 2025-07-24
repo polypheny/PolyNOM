@@ -1,7 +1,6 @@
 import inspect
 import logging
 import polypheny
-import json
 import uuid
 from json import dumps
 from typing import Any, TYPE_CHECKING
@@ -11,7 +10,7 @@ from dataclasses import dataclass, field
 from polynom.model import BaseModel
 from polynom.reflection import ChangeLog
 from polynom.schema.relationship import Relationship
-from polynom.statement import _SqlGenerator
+from polynom.statement import _SqlGenerator, Statement
 
 logger = logging.getLogger(__name__)
 
@@ -152,10 +151,22 @@ class Session:
         for model in models:
             self._track(model)
         
-    def _execute(self, language, statement, parameters=None, namespace=None, fetch=True ):
+    def _execute(self, language, statement, parameters=None, namespace=None, fetch=True):
         self._cursor.executeany(language, statement, params=parameters, namespace=namespace)
         if fetch:
-            return self._cursor.fetchall()
+            try:
+                return self._cursor.fetchall()
+            except Exception:
+                return
+        return
+
+    def _execute(self, statement: Statement, fetch=True):
+        statement.execute(self._cursor)
+        if fetch:
+            try:
+                return self._cursor.fetchall()
+            except Exception:
+                return
         return
 
     def delete(self, model):

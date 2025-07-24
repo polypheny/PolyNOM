@@ -45,7 +45,7 @@ def _sort_by_foreign_key(schemas):
         raise RuntimeError("Circular FK dependency")
     return [schemas_by_name[name] for name in ordered_names]
     
-def _to_json():
+def _to_dict():
     return {
         "version": datetime.now().strftime("%Y%m%dT%H%M%S"),
         "schemas": [schema._to_dict() for schema in _get_ordered_schemas()]

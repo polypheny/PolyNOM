@@ -4,11 +4,11 @@ import polynom.config as cfg
 import polynom.docker as docker
 from polynom.schema.migration import Migrator
 from polynom.session import Session
-from polynom.schema.schema_registry import _get_ordered_schemas, _to_json
+from polynom.schema.schema_registry import _get_ordered_schemas, _to_dict
 from polynom.schema.schema import DataModel
 from polynom.reflection import SchemaSnapshot, SchemaSnapshotSchema
-from polynom.model import FlexModel
-from polynom.statement import _SqlGenerator, get_generator_for_data_model
+from polynom.statement import _SqlGenerator
+from polynom.dump import _dump, _load, _compare_snapshots
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +82,7 @@ class Application:
         with session:
             logger.debug(f"Reading schema snapshot from database for application {self._app_uuid}.")
             previous = SchemaSnapshot.query(session).get(self._app_uuid)
-            current_snapshot = _to_json()
+            current_snapshot = _to_dict()
 
             if not previous:
                 logger.debug(f"No schema snapshot found for application {self._app_uuid}. Creating a first one.")
@@ -92,7 +92,7 @@ class Application:
                 return
 
             logger.debug(f"Checking for schema changes for application {self._app_uuid}.")
-            diff = self._compare_snapshots(previous.snapshot, current_snapshot)
+            diff = _compare_snapshots(previous.snapshot, current_snapshot)
 
             if diff and self._migrate:
                 logger.debug(f"Schema changes for application {self._app_uuid} found.")
@@ -101,50 +101,6 @@ class Application:
 
             previous.snapshot = current_snapshot
             session.commit()
-
-    def _compare_snapshots(self, previous, current):
-        diff = {}
-
-        current_schemas = {s['entity_name']: s for s in current['schemas']}
-        previous_schemas = {s['entity_name']: s for s in previous['schemas']}
-
-        for entity_name, prev_entity in previous_schemas.items():
-            curr_entity = current_schemas.get(entity_name)
-
-            entity_diff = {
-                'namespace_name': prev_entity.get('namespace_name'),
-                'changes': {}
-            }
-
-            if not curr_entity:
-                diff[entity_name] = entity_diff
-                continue
-
-            prev_fields = {f['name']: f for f in prev_entity.get('fields', [])}
-            curr_fields = {f['name']: f for f in curr_entity.get('fields', [])}
-            handled_prev_fields = set()
-
-            for curr_name, curr_field in curr_fields.items():
-                prev_name = curr_field.get('previous_name')
-                if prev_name and prev_name in prev_fields:
-                    entity_diff['changes'][curr_name] = [prev_fields[prev_name], curr_field]
-                    handled_prev_fields.add(prev_name)
-                    continue
-                if curr_name not in prev_fields:
-                    entity_diff['changes'][curr_name] = [None, curr_field]
-
-            for prev_name, prev_field in prev_fields.items():
-                if prev_name in handled_prev_fields:
-                    continue
-                if prev_name not in curr_fields:
-                    entity_diff['changes'][prev_name] = [prev_field, None]
-                elif prev_fields[prev_name] != curr_fields[prev_name]:
-                    entity_diff['changes'][prev_name] = [prev_field, curr_fields[prev_name]]
-
-            if entity_diff['changes']:
-                diff[entity_name] = entity_diff
-
-        return diff
 
     def _process_schemas(self):
         for schema in _get_ordered_schemas():
@@ -165,29 +121,13 @@ class Application:
         generator._create_namespace(namespace, data_model, if_not_exists=True).execute(self._cursor)
         logger.debug(f"Created namespace {namespace} if absent.")
 
-        generator._define_entity(schema_class).execute(self._cursor)
+        generator._define_entity(schema_class, if_not_exists=True).execute(self._cursor)
         self._conn.commit()
 
         logger.debug(f"Created entity {entity} if absent.")
-
-    def dump(self, file_path: str):
-        namespaces = []
-        with open(file_path, 'w') as file:
-            with Session(self) as session:
-                for schema in _get_ordered_schemas():
-                    sql_generator = _SqlGenerator()
-                    namespace = schema.namespace_name
-                    data_model = schema.data_model
-
-                    if namespace not in namespaces:
-                        namespaces.append(namespace)
-                        file.write(sql_generator._create_namespace(namespace, data_model).dump())
-
-                    generator = get_generator_for_data_model(data_model)
-                    model = FlexModel.from_schema(schema)
-                    entries = model.query(session).all()
-                    for entry in entries:
-                        file.write(generator._insert(entry).dump())
     
-    def load_dump():
-        pass
+    def dump(self, file_path):
+        _dump(self, file_path)
+    
+    def load(self, file_path):
+        _load(self, file_path)

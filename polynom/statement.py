@@ -62,7 +62,15 @@ class _BaseGenerator(ABC):
         pass
 
     @abstractmethod
-    def _define_entity(self, schema) -> Statement:
+    def _drop_namespace(self, namespace: str, if_exists: bool = False) -> Statement:
+        pass
+
+    @abstractmethod
+    def _define_entity(self, schema, if_not_exists: bool = False) -> Statement:
+        pass
+
+    @abstractmethod
+    def _drop_entity(self, schema, if_exists: bool = False) -> Statement:
         pass
 
 class _SqlGenerator(_BaseGenerator):
@@ -130,8 +138,18 @@ class _SqlGenerator(_BaseGenerator):
             language=self.LANGUAGE,
             statement=sql
         )
+
+    def _drop_namespace(self, namespace: str, if_exists: bool = False) -> Statement:
+        option = 'IF EXISTS ' if if_exists else ''
+        statement = f'DROP NAMESPACE {option}"{namespace}"'
+        
+        return Statement(
+            namespace=namespace,
+            language=self.LANGUAGE,
+            statement=statement
+        )
     
-    def _define_entity(self, schema) -> Statement:
+    def _define_entity(self, schema, if_not_exists: bool = False) -> Statement:
         data_model = schema.data_model
         if data_model is not DataModel.RELATIONAL:
             raise ValueError("This generator cannot create definitions for nonrelational entities.")
@@ -170,12 +188,25 @@ class _SqlGenerator(_BaseGenerator):
             constraints.append(f"PRIMARY KEY ({', '.join(primary_key_columns)})")
         constraints += [f'UNIQUE ("{col}")' for col in unique_columns]
 
-        create_stmt = f'CREATE TABLE IF NOT EXISTS "{namespace}"."{entity}" ({", ".join(column_defs + constraints)});'
+        option = 'IF NOT EXISTS ' if if_not_exists else ''
+        create_stmt = f'CREATE TABLE {option}"{namespace}"."{entity}" ({", ".join(column_defs + constraints)});'
 
         return Statement(
             namespace=namespace,
             language=self.LANGUAGE,
             statement=create_stmt
+        )
+    
+    def _drop_entity(self, schema, if_exists: bool = False) -> Statement:
+        option = 'IF EXISTS ' if if_exists else ''
+        namespace = schema.namespace_name
+        entity = schema.entity_name
+        statement = f'DROP TABLE {option}"{namespace}"."{entity}"'
+        
+        return Statement(
+            namespace=namespace,
+            language=self.LANGUAGE,
+            statement=statement
         )
 
 def get_generator_for_data_model(data_model: DataModel) -> _BaseGenerator:

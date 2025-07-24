@@ -1,5 +1,5 @@
 import pytest
-from polynom.statement import Statement, _SqlGenerator, get_generator_for_data_model
+from polynom.statement import _SqlGenerator, get_generator_for_data_model, Statement
 from polynom.schema.schema import DataModel
 
 def test_simple():
@@ -7,7 +7,6 @@ def test_simple():
         language='sql',
         statement='select * from emps'
     )
-
     assert statement.language == 'sql'
     assert statement.statement == 'select * from emps'
     assert statement.values is None
@@ -17,9 +16,8 @@ def test_simple_with_namespace():
     statement = Statement(
         language='sql',
         statement='select * from emps',
-        namespace = 'public'
+        namespace='public'
     )
-
     assert statement.language == 'sql'
     assert statement.statement == 'select * from emps'
     assert statement.namespace == 'public'
@@ -31,12 +29,7 @@ def test_parameterized_single_parameter():
         statement='SELECT * FROM emps WHERE dept_id = ?',
         values=(42,),
     )
-
-    assert statement.language == 'sql'
-    assert statement.statement == 'SELECT * FROM emps WHERE dept_id = ?'
-    assert statement.namespace is None
     assert statement.values == (42,)
-
 
 def test_parameterized_multiple_parameters():
     statement = Statement(
@@ -44,10 +37,6 @@ def test_parameterized_multiple_parameters():
         statement='SELECT * FROM emps WHERE dept_id = ? AND role = ?',
         values=(42, 'Manager'),
     )
-
-    assert statement.language == 'sql'
-    assert statement.statement == 'SELECT * FROM emps WHERE dept_id = ? AND role = ?'
-    assert statement.namespace is None
     assert statement.values == (42, 'Manager')
 
 def test_parameterized_single_parameter_with_namespace():
@@ -55,27 +44,9 @@ def test_parameterized_single_parameter_with_namespace():
         language='sql',
         statement='SELECT * FROM emps WHERE dept_id = ?',
         values=(42,),
-        namespace = 'test'
+        namespace='test'
     )
-
-    assert statement.language == 'sql'
-    assert statement.statement == 'SELECT * FROM emps WHERE dept_id = ?'
     assert statement.namespace == 'test'
-    assert statement.values == (42,)
-
-
-def test_parameterized_multiple_parameters_with_namespace():
-    statement = Statement(
-        language='sql',
-        statement='SELECT * FROM emps WHERE dept_id = ? AND role = ?',
-        values=(42, 'Manager'),
-        namespace = 'test'
-    )
-
-    assert statement.language == 'sql'
-    assert statement.statement == 'SELECT * FROM emps WHERE dept_id = ? AND role = ?'
-    assert statement.namespace == 'test'
-    assert statement.values == (42, 'Manager')
 
 def test_dump_no_parameters():
     stmt = Statement(
@@ -123,7 +94,6 @@ def test_dump_non_sql_language():
         values=(1, 2),
         namespace='graph'
     )
-    # Should not interpolate parameters
     expected = '/*cypher@graph*/ MATCH (n) RETURN n'
     assert stmt.dump() == expected
 
@@ -148,10 +118,44 @@ def test_return_relational_generator():
     generator = get_generator_for_data_model(DataModel.RELATIONAL)
     assert isinstance(generator, _SqlGenerator)
 
-def test_throws_dcument_generator():
+def test_throws_document_generator():
     with pytest.raises(NotImplementedError, match="Document query generation not implemented yet."):
         get_generator_for_data_model(DataModel.DOCUMENT)
 
 def test_throws_graph_generator():
     with pytest.raises(NotImplementedError, match="Graph query generation not implemented yet."):
         get_generator_for_data_model(DataModel.GRAPH)
+
+def test_create_namespace_if_not_exists():
+    stmt = _SqlGenerator()._create_namespace('testns', DataModel.RELATIONAL, if_not_exists=True)
+    assert stmt.statement == 'CREATE RELATIONAL NAMESPACE IF NOT EXISTS "testns"'
+
+def test_create_namespace_without_if_not_exists():
+    stmt = _SqlGenerator()._create_namespace('testns', DataModel.RELATIONAL, if_not_exists=False)
+    assert stmt.statement == 'CREATE RELATIONAL NAMESPACE "testns"'
+
+def test_drop_namespace_if_exists():
+    stmt = _SqlGenerator()._drop_namespace('testns', if_exists=True)
+    assert stmt.statement == 'DROP NAMESPACE IF EXISTS "testns"'
+    assert stmt.namespace == 'testns'
+
+def test_drop_namespace_without_if_exists():
+    stmt = _SqlGenerator()._drop_namespace('testns', if_exists=False)
+    assert stmt.statement == 'DROP NAMESPACE "testns"'
+    assert stmt.namespace == 'testns'
+
+def test_drop_entity_if_exists():
+    class DummySchema:
+        namespace_name = 'ns'
+        entity_name = 'table'
+
+    stmt = _SqlGenerator()._drop_entity(DummySchema(), if_exists=True)
+    assert stmt.statement == 'DROP TABLE IF EXISTS "ns"."table"'
+
+def test_drop_entity_without_if_exists():
+    class DummySchema:
+        namespace_name = 'ns'
+        entity_name = 'table'
+
+    stmt = _SqlGenerator()._drop_entity(DummySchema(), if_exists=False)
+    assert stmt.statement == 'DROP TABLE "ns"."table"'

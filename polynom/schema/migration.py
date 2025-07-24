@@ -113,7 +113,7 @@ class Migrator:
         logger.info("Performing automatic schema migration...")
         self._generate_statements(diff)
         for namespace_name, statement in self.statements_with_namespace:
-            logger.debug(f"Migration: namespace={namespace_name}, statement={statment}")
+            logger.debug(f"Migration: namespace={namespace_name}, statement={statement}")
             session._execute('sql', statement, namespace=namespace_name, fetch=False)
         logger.info("Automatic schema migration complete.")
 

@@ -2,8 +2,7 @@ import pytest
 from polynom.session import Session, _SessionState
 from polynom.application import Application
 from tests.model import User, Bike
-
-APP_UUID = 'a8817239-9bae-4961-a619-1e9ef5575eff'
+from tests.utils import APP_UUID
 
 @pytest.fixture(scope='module')
 def app():
