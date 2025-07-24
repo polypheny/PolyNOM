@@ -6,7 +6,7 @@ from polynom.session import Session
 from polynom.schema.schema_registry import _get_ordered_schemas, _to_dict
 from polynom.statement import _SqlGenerator, Statement, get_generator_for_data_model
 from polynom.model import FlexModel
-from polynom.reflection import SchemaSnapshot, SchemaSnapshotSchema
+from polynom.reflection import ChangeLog
 
 logger = logging.getLogger(__name__)
 
@@ -30,12 +30,20 @@ def _dump(application, file_path: str):
                         file.write(sql_generator._create_namespace(namespace, data_model, if_not_exists=True).dump())
                         file.write('\n')
 
+                    if schema.entity_name == cfg.get(cfg.SNAPSHOT_TABLE):
+                        continue
+
                     generator = get_generator_for_data_model(data_model)
                     file.write(generator._define_entity(schema, if_not_exists=True).dump())
                     file.write('\n')
 
                     model = FlexModel.from_schema(schema)
-                    entries = model.query(session).all()
+                    
+                    if schema.entity_name == cfg.get(cfg.CHANGE_LOG_TABLE):
+                        entries = ChangeLog.query(session).filter_by(app_uuid=application._app_uuid).all()
+                    else:
+                        entries = model.query(session).all()
+
                     for entry in entries:
                         file.write(generator._insert(entry).dump())
                         file.write('\n')
@@ -163,6 +171,16 @@ def _drop_database(application):
             data_model = schema.data_model
             generator = get_generator_for_data_model(data_model)
 
+            if schema.entity_name == cfg.get(cfg.SNAPSHOT_TABLE):
+                # We do not drop the snapthot entity as other application store data here as well.
+                # We do not need to delete this applications entry as it has been confirmed to be matching the dump during header validation.
+                continue
+
+            if schema.entity_name == cfg.get(cfg.CHANGE_LOG_TABLE):
+                logger.debug(f"Dropping changelog records of application {application._app_uuid}")
+                ChangeLog.query(session).filter_by(app_uuid=application._app_uuid).delete()
+                continue
+
             logger.debug(f"Dropping entity '{schema.entity_name}' on namespace '{schema.namespace_name}'")
             session._execute(generator._drop_entity(schema))
         
@@ -170,6 +188,8 @@ def _drop_database(application):
         for namespace in namespaces:
             generator = _SqlGenerator()
             if namespace in protected_namespaces:
+                continue
+            if namespace == cfg.get(cfg.INTERNAL_NAMESPACE):
                 continue
             logger.debug(f"Dropping namespace '{schema.namespace_name}'")
             session._execute(generator._drop_namespace(namespace))

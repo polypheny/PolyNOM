@@ -90,7 +90,9 @@ class Session:
             change_data[field_name] = [old_serialized, new_serialized]
 
         change_log = ChangeLog(
+            self._application._app_uuid,
             model._entry_id,
+            model.schema.namespace_name,
             model.schema.entity_name,
             self._log_user,
             datetime.now(),

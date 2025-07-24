@@ -9,7 +9,9 @@ class ChangeLogSchema(BaseSchema):
     entity_name = cfg.get(cfg.CHANGE_LOG_TABLE)
     namespace_name = cfg.get(cfg.INTERNAL_NAMESPACE)
     fields = [
+        Field('app_uuid', Text(), nullable=False),
         Field('modified_entry_id', Text(), nullable=False),
+        Field('modified_entity_namespace', Text(), nullable=False),
         Field('modified_entity_name', Text(), nullable=False),
         Field('modified_by', Text(), nullable=False),
         Field('date_of_change', Timestamp(), nullable=False),
@@ -19,9 +21,11 @@ class ChangeLogSchema(BaseSchema):
 class ChangeLog(BaseModel):
     schema = ChangeLogSchema()
 
-    def __init__(self, modified_entry_id: str, modified_entity_name: str, modified_by: str, date_of_change, changes: dict, _entry_id = None):
+    def __init__(self, app_uuid: str, modified_entry_id: str, modified_entity_namespace: str, modified_entity_name: str, modified_by: str, date_of_change, changes: dict, _entry_id = None):
         super().__init__(_entry_id)
+        self.app_uuid = app_uuid
         self.modified_entry_id = modified_entry_id
+        self.modified_entity_namespace = modified_entity_namespace
         self.modified_entity_name = modified_entity_name
         self.modified_by = modified_by
         self.date_of_change = date_of_change
