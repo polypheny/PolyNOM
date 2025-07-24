@@ -65,24 +65,48 @@ class BaseModel:
         return Query(cls, session)
 
     @classmethod
-    def _from_row(cls: Type[T], row: dict[str, Any]) -> T:
+    def _from_dict(cls: Type[T], row: dict[str, Any]) -> T:
         obj_data = {
             field._python_field_name: field._polytype._from_prism_serializable(row[field._db_field_name])
             for field in cls.schema._get_fields()
         }
         return cls(**obj_data)
 
-    def _to_update_dict(self) -> dict[str, Any]:
+    def _to_dict(self) -> dict[str, Any]:
         return {
             field._db_field_name: field._polytype._to_prism_serializable(getattr(self, field._python_field_name))
             for field in self.schema._get_fields()
             if hasattr(self, field._python_field_name)
      }
 
-    def _to_insert_dict(self) -> dict[str, Any]:
-        return {
-            field._db_field_name: field._polytype._to_prism_serializable(getattr(self, field._python_field_name))
-            for field in self.schema._get_fields()
-            if hasattr(self, field._python_field_name)
-        }
+class FlexModel(BaseModel):
+    def __init__(self, _entry_id: str = None, **kwargs):
+        if not hasattr(self, 'schema'):
+            raise ValueError("FlexModel must have a schema attribute defined before instantiation.")
+        
+        for field in self.schema._get_fields():
+            value = kwargs.get(field._python_field_name)
+            setattr(self, field._python_field_name, value)
+        
+        super().__init__(_entry_id=_entry_id)
 
+    @classmethod
+    def from_schema(cls, schema) -> Type['FlexModel']:
+
+        class _DynamicFlexModel(FlexModel):
+            pass
+
+        _DynamicFlexModel.schema = schema
+        return _DynamicFlexModel
+
+    @classmethod
+    def _from_dict(cls: Type[T], row: dict[str, Any]) -> T:
+        if not hasattr(cls, 'schema'):
+            raise ValueError("Schema must be defined on FlexModel subclass before calling _from_dict.")
+
+        obj_data = {
+            field._python_field_name: field._polytype._from_prism_serializable(row[field._db_field_name])
+            for field in cls.schema._get_fields()
+            if field._db_field_name in row
+        }
+        return cls(**obj_data)

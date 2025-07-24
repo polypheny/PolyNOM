@@ -1,10 +1,17 @@
+from enum import Enum
 from polynom.schema.field import Field, PrimaryKeyField
 from polynom.schema.polytypes import VarChar
 import polynom.config as cfg
 
+class DataModel(Enum):
+    RELATIONAL = "RELATIONAL"
+    DOCUMENT = "DOCUMENT"
+    GRAPH = "GRAPH"
+
 class BaseSchema:
     entity_name: str
     namespace_name: str = cfg.get(cfg.DEFAULT_NAMESPACE)
+    data_model: DataModel = DataModel(cfg.get(cfg.DEFAULT_DATA_MODEL))
     previous_name: str = None
     _base_fields = [
         PrimaryKeyField('_entry_id', VarChar(36), unique=True)

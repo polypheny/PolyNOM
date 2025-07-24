@@ -83,7 +83,7 @@ class Query:
         row = cursor.fetchone()
         if row:
             columns = [desc[0] for desc in cursor.description]
-            model = self._model_cls._from_row(dict(zip(columns, row)))
+            model = self._model_cls._from_dict(dict(zip(columns, row)))
             self._session._track(model) #ToDo AG: isch das richtig so?
             return model
         return None
@@ -190,8 +190,8 @@ class Query:
             base_data = {
                 f._db_field_name: row_map[f._db_field_name]
                 for f in self._model_cls.schema._get_fields()}
-            parent = self._model_cls._from_row(base_data)
-            self._session._track(parent) #ToDo AG: isch das richtig so?
+            parent = self._model_cls._from_dict(base_data)
+            self._session._track(parent)
             parent._session = self._session
 
             for attr_name, child_cls, alias in self._eager_loads:
@@ -206,11 +206,11 @@ class Query:
                     child_data[aliased_col] = val
 
                 if not all_null:
-                    child = child_cls._from_row({
+                    child = child_cls._from_dict({
                         f._db_field_name: child_data[f"{alias}__{f._db_field_name}"]
                         for f in child_cls.schema._get_fields()
                     })
-                    self._session._track(child) #ToDo AG: isch das richtig so?
+                    self._session._track(child)
                     child._session = self._session
                     setattr(parent, attr_name, child)
                 else:
@@ -233,7 +233,7 @@ class Query:
         if row:
             columns = [desc[0] for desc in cursor.description]
             row_dict = dict(zip(columns, row))
-            model = self._model_cls._from_row(row_dict)
+            model = self._model_cls._from_dict(row_dict)
             model._session = self._session
             self._session._track(model)
             return model

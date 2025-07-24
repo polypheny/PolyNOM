@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from polynom.model import BaseModel
 from polynom.reflection import ChangeLog
 from polynom.schema.relationship import Relationship
+from polynom.statement import _SqlGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,8 @@ class Session:
         self._state = _SessionState.INITIALIZED
         self._tracked_models: dict[str, BaseModel] = {}
 
+        self._generator = _SqlGenerator()
+
     def __enter__(self):
         if self._state == _SessionState.ACTIVE:
             return
@@ -72,22 +75,11 @@ class Session:
             raise RuntimeError(message)
 
     def _update(self, model):
-        entity = model.schema.entity_name
-        namespace = model.schema.namespace_name
-        data = model._to_update_dict()
-
         if not hasattr(model, "_entry_id") or model._entry_id is None:
             raise ValueError("Model must have an _entry_id to perform update.")
 
-        if '_entry_id' in data:
-            data.pop('_entry_id')
-
-        set_clause = ', '.join(f"{col} = ?" for col in data.keys())
-        values = list(data.values())
-        values.append(model._entry_id)
-    
-        sql = f'UPDATE "{namespace}"."{entity}" SET {set_clause} WHERE _entry_id = ?'
-        self._cursor.executeany("sql", sql, values, namespace=namespace)
+        statement = self._generator._update(model)
+        statement.execute(self._cursor)
 
     def _update_change_log(self, model, diff: dict):   
         field_map = model.schema._get_field_map()
@@ -121,16 +113,8 @@ class Session:
             self._track(model)
             self._add_related_models(model)
         
-        entity = model.schema.entity_name
-        namespace = model.schema.namespace_name
-        data = model._to_insert_dict()
-
-        columns = ', '.join(data.keys())
-        placeholders = ', '.join(['?'] * len(data))
-        values = tuple(data.values())
-        
-        sql = f'INSERT INTO "{namespace}"."{entity}" ({columns}) VALUES ({placeholders})'
-        self._cursor.executeany("sql" ,sql, values, namespace=namespace)
+        statement = self._generator._insert(model)
+        statement.execute(self._cursor)
             
     def add_all(self, models, tracking=True):
         # session state is checked by add
@@ -177,10 +161,9 @@ class Session:
     def delete(self, model):
         self._throw_if_not_active()
         
-        entity = model.schema.entity_name
-        namespace = model.schema.namespace_name
-        sql = f'DELETE FROM "{namespace}"."{entity}" WHERE _entry_id = ?'
-        self._cursor.executeany("sql", sql, (model._entry_id,), namespace=model.schema.namespace_name)
+        statement = self._generator._delete(model)
+        statement.execute(self._cursor)
+
         if model._entry_id in self._tracked_models:
             model._is_active = False
 

@@ -1,15 +1,14 @@
 import polypheny
-import docker
 import logging
-import socket
-import time
 import polynom.config as cfg
+import polynom.docker as docker
 from polynom.schema.migration import Migrator
 from polynom.session import Session
-from docker.errors import DockerException, NotFound, ImageNotFound
 from polynom.schema.schema_registry import _get_ordered_schemas, _to_json
-from polynom.schema.field import PrimaryKeyField, ForeignKeyField
+from polynom.schema.schema import DataModel
 from polynom.reflection import SchemaSnapshot, SchemaSnapshotSchema
+from polynom.model import FlexModel
+from polynom.statement import _SqlGenerator, get_generator_for_data_model
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +47,7 @@ class Application:
         self._initialized = True
         
         if self._use_docker:
-            self._deploy_polypheny()
+            docker._deploy_polypheny(self._address, self._user, self._password, self._transport)
 
         self._conn = polypheny.connect(
             self._address,
@@ -59,7 +58,7 @@ class Application:
         self._cursor = self._conn.cursor()
 
         self._verify_schema()
-        self._create_schema()
+        self._process_schemas()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -71,69 +70,10 @@ class Application:
         if not self._use_docker:
             return
         if self._stop_container:
-            self._stop_container_by_name(cfg.get(cfg.POLYPHENY_CONTAINER_NAME))
+            docker._stop_container_by_name(cfg.get(cfg.POLYPHENY_CONTAINER_NAME))
         if self._remove_container:
-            self._remove_container_by_name(cfg.get(cfg.POLYPHENY_CONTAINER_NAME))
+            docker._remove_container_by_name(cfg.get(cfg.POLYPHENY_CONTAINER_NAME))
         cfg.unlock()
-
-    def _wait_for_prism(self, timeout=60):
-        start_time = time.time()
-        while time.time() - start_time < timeout:
-            try:
-                conn = polypheny.connect(
-                    self._address,
-                    username=self._user,
-                    password=self._password,
-                    transport=self._transport
-                )
-                conn.close()
-                return
-            except EOFError:
-                time.sleep(1)
-            except Exception as e:
-                raise RuntimeError(f"Unexpected error while connecting to Polypheny: {e}") from e
-        raise TimeoutError("Timed out waiting for Polypheny to become available.")
-
-    def _deploy_polypheny(self):
-        logger.info("Establishing connection to Docker...")
-        try:
-            client = docker.from_env()
-            client.ping()
-        except DockerException as e:
-            logger.error("Docker is not running or not accessible.")
-            raise RuntimeError("Docker is not running or not accessible.") from e
-
-        container_name = cfg.get(cfg.POLYPHENY_CONTAINER_NAME)
-        image_name = cfg.get(cfg.POLYPHENY_IMAGE_NAME)
-        ports = cfg.get(cfg.POLYPHENY_PORTS)
-
-        try:
-            logger.info(f"Checking for presence of Polypheny container '{container_name}'...")
-            container = client.containers.get(container_name)
-            container.start()
-            logger.info(f"Container '{container_name}' found and started.")
-        except NotFound:
-            logger.info("Polypheny container not found. Deploying a new container. This may take a moment...")
-            try:
-                client.images.pull(image_name)
-                container = client.containers.run(
-                    image_name,
-                    name=container_name,
-                    ports=ports,
-                    detach=True
-                )
-                logger.info(f"New Polypheny container '{container_name}' deployed and started.")
-            except DockerException as e:
-                logger.error(f"Failed to create or run the Polypheny container: {e}")
-                raise RuntimeError("Failed to create or run the Polypheny container.") from e
-
-        logger.info(f"Waiting for Polypheny Prism to become available at {self._address,}...")
-        try:
-            self._wait_for_prism()
-            logger.info("Polypheny Prism is now responsive.")
-        except TimeoutError as e:
-            logger.error(str(e))
-            raise RuntimeError("Polypheny container did not become ready in time.") from e
 
     def _verify_schema(self):
         self._process_schema(SchemaSnapshotSchema)
@@ -161,10 +101,6 @@ class Application:
 
             previous.snapshot = current_snapshot
             session.commit()
-
-    def _create_schema(self):
-        for schema in _get_ordered_schemas():
-            self._process_schema(schema)
 
     def _compare_snapshots(self, previous, current):
         diff = {}
@@ -210,76 +146,48 @@ class Application:
 
         return diff
 
+    def _process_schemas(self):
+        for schema in _get_ordered_schemas():
+            self._process_schema(schema)
+
     def _process_schema(self, schema_class):
         entity = schema_class.entity_name
         namespace = schema_class.namespace_name
-        fields = schema_class._get_fields()
+        data_model = schema_class.data_model
 
         logger.info(f"Initializing entity {entity} in namespace {namespace}.")
 
-        self._cursor.execute(f'CREATE RELATIONAL NAMESPACE IF NOT EXISTS "{namespace}"')
+        if data_model is not DataModel.RELATIONAL:
+            raise NotImplementedError("Non-relational entities are not yet supported!")
+        
+        generator = _SqlGenerator()
+
+        generator._create_namespace(namespace, data_model, if_not_exists=True).execute(self._cursor)
         logger.debug(f"Created namespace {namespace} if absent.")
 
-        column_defs = []
-        foreign_keys = []
-        unique_columns = []
-        primary_key_columns = []
-
-        for field in fields:
-            col_def = f'"{field._db_field_name}" {field._polytype._type_string}'
-            if not getattr(field, 'nullable', False):
-                col_def += " NOT NULL"
-            default_value = getattr(field, 'default', None)
-            if default_value is not None:
-                col_def += f" DEFAULT {field._polytype._to_sql_expression(default_value)}"
-            if getattr(field, 'unique', False):
-                unique_columns.append(field._db_field_name)
-            if isinstance(field, PrimaryKeyField):
-                primary_key_columns.append(field._db_field_name)
-            column_defs.append(col_def)
-
-            if isinstance(field, ForeignKeyField):
-                fk = (
-                    f'FOREIGN KEY ("{field._db_field_name}") '
-                    f'REFERENCES "{field.referenced_entity_name}"("{field.referenced_db_field_name}")'
-                )
-                foreign_keys.append(fk)
-
-        constraints = foreign_keys[:]
-        if primary_key_columns:
-            constraints.append(f"PRIMARY KEY ({', '.join(primary_key_columns)})")
-        constraints += [f'UNIQUE ("{col}")' for col in unique_columns]
-
-        create_stmt = f'CREATE TABLE IF NOT EXISTS "{namespace}"."{entity}" ({", ".join(column_defs + constraints)});'
-        self._cursor.executeany('sql', create_stmt, namespace=namespace)
+        generator._define_entity(schema_class).execute(self._cursor)
         self._conn.commit()
 
         logger.debug(f"Created entity {entity} if absent.")
 
-    def _stop_container_by_name(self, container_name):
-        try:
-            client = docker.from_env()
-            client.ping()
-            container = client.containers.get(container_name)
-            if container.status == 'running':
-                container.stop()
-            logger.info(f"Container '{container_name}' stopped.")
-        except NotFound:
-            logger.warning(f"No container named '{container_name}' found.")
-        except DockerException as e:
-            logger.error(f"Failed to stop the container '{container_name}': {e}")
-            raise RuntimeError(f"Failed to stop the container '{container_name}'") from e
+    def dump(self, file_path: str):
+        namespaces = []
+        with open(file_path, 'w') as file:
+            with Session(self) as session:
+                for schema in _get_ordered_schemas():
+                    sql_generator = _SqlGenerator()
+                    namespace = schema.namespace_name
+                    data_model = schema.data_model
 
-    def _remove_container_by_name(self, container_name):
-        try:
-            client = docker.from_env()
-            client.ping()
-            container = client.containers.get(container_name)
-            container.remove()
-            logger.info(f"Container '{container_name}' removed.")
-        except NotFound:
-            logger.warning(f"No container named '{container_name}' found.")
-        except DockerException as e:
-            logger.error(f"Failed to remove the container '{container_name}': {e}")
-            raise RuntimeError(f"Failed to remove the container '{container_name}'") from e
+                    if namespace not in namespaces:
+                        namespaces.append(namespace)
+                        file.write(sql_generator._create_namespace(namespace, data_model).dump())
 
+                    generator = get_generator_for_data_model(data_model)
+                    model = FlexModel.from_schema(schema)
+                    entries = model.query(session).all()
+                    for entry in entries:
+                        file.write(generator._insert(entry).dump())
+    
+    def load_dump():
+        pass
