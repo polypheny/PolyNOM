@@ -181,7 +181,7 @@ class _SqlGenerator(_BaseGenerator):
 def get_generator_for_data_model(data_model: DataModel) -> _BaseGenerator:
     match data_model:
         case DataModel.RELATIONAL:
-            generator = _SqlGenerator()
+            return _SqlGenerator()
         case DataModel.DOCUMENT:
             raise NotImplementedError("Document query generation not implemented yet.")
         case DataModel.GRAPH:
