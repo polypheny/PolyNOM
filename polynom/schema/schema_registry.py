@@ -4,10 +4,13 @@ from datetime import datetime
 import os
 import json
 
+logger = logging.getLogger(__name__)
+
 _registered_schemas = set()
 _sorted_schemas = None
 
 def register_schema(schema):
+    logger.debug(f'Schema registered: {str(schema=}}')
     _registered_schemas.add(schema)
 
 def _get_registered_schemas():
@@ -28,6 +31,11 @@ def _sort_by_foreign_key(schemas):
         name = current_schema.entity_name
         for f in current_schema.fields:
             if isinstance(f, ForeignKeyField):
+                if f.referenced_entity_name not in schemas_by_name:
+                    raise RuntimeError(
+                        f"Referenced schema '{f.referenced_entity_name}'"
+                        f"not found among input schemas"
+                    )
                 dependencys[name].add(f.referenced_entity_name)
                 reverse_deps[f.referenced_entity_name].add(name)
 
