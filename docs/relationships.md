@@ -121,3 +121,18 @@ class Owner(BaseModel):
         self.email = email
 ```
 Here, the back_populates="owner" on the Owner side completes the bidirectional link. Both sides must specify back_populates with the matching attribute name to ensure automatic synchronization. Mismatched or missing back_populates may cause inconsistencies or runtime errors.
+
+### Many-to-many Relationships
+When a relationship involves multiple instances on both sides such as many `Cyclists` belonging to many `Teams` a simple foreign key in one schema is not sufficient. In these cases, an association entity can be used at the schema level to map the many-to-many relationship. This entity contains foreign keys pointing to each related schema to link them.
+
+An example of an association entity to link `Cyclists` and `Teams` is given below:
+
+```python
+class TeamCyclistAssocSchema(BaseSchema):
+    fields = [
+        ForeignKeyField('team_id', referenced_schema=TeamSchema),
+        ForeignKeyField('cyclist_id', referenced_schema=CyclistSchema)
+    ]
+```
+
+Note that PolyNOM does not automatically create assocoation entities for many-to-many relationships.
