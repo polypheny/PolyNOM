@@ -1,8 +1,6 @@
 from collections import defaultdict, deque
 from polynom.schema.field import ForeignKeyField
 from datetime import datetime
-import os
-import json
 import logging
 
 logger = logging.getLogger(__name__)
