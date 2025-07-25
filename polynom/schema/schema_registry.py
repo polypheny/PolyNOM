@@ -3,6 +3,7 @@ from polynom.schema.field import ForeignKeyField
 from datetime import datetime
 import os
 import json
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -10,7 +11,7 @@ _registered_schemas = set()
 _sorted_schemas = None
 
 def register_schema(schema):
-    logger.debug(f'Schema registered: {str(schema=}}')
+    logger.debug(f'Schema registered: {str(schema)}')
     _registered_schemas.add(schema)
 
 def _get_registered_schemas():
