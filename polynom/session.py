@@ -30,9 +30,9 @@ class Session:
         log_user: str = None,
     ):
 
-        from polynom.application import Application
-        if not application._initialized:
-            message = "The application must be initialized before its sessions"
+        from polynom.application import Application, _ApplicationState
+        if application._state != _ApplicationState.ACTIVE:
+            message = "The application must be active on session creation"
             logger.error(message)
             raise ValueError(message)
             

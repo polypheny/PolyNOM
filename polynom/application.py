@@ -2,6 +2,7 @@ import polypheny
 import logging
 import polynom.config as cfg
 import polynom.docker as docker
+from enum import Enum, auto
 from polynom.schema.migration import Migrator
 from polynom.session import Session
 from polynom.schema.schema_registry import _get_ordered_schemas, _to_dict
@@ -11,6 +12,11 @@ from polynom.statement import _SqlGenerator
 from polynom.dump import _dump, _load, _compare_snapshots
 
 logger = logging.getLogger(__name__)
+
+class _ApplicationState(Enum):
+    INITIALIZED = auto()
+    ACTIVE = auto()
+    COMPLETED = auto()
 
 class Application:
     def __init__(
@@ -39,12 +45,12 @@ class Application:
 
         self._conn = None
         self._cursor = None
-        self._initialized = False
+        self._state = _ApplicationState.INITIALIZED
 
     def __enter__(self):
-        if self._initialized:
+        if self._state:
             raise ValueError("Application must only be initialized once.")
-        self._initialized = True
+        self._state = _ApplicationState.ACTIVE
         
         if self._use_docker:
             docker._deploy_polypheny(self._address, self._user, self._password, self._transport)
@@ -74,6 +80,8 @@ class Application:
         if self._remove_container:
             docker._remove_container_by_name(cfg.get(cfg.POLYPHENY_CONTAINER_NAME))
         cfg.unlock()
+
+        self._state = _ApplicationState.COMPLETED
 
     def _verify_schema(self):
         self._process_schema(SchemaSnapshotSchema)
@@ -127,7 +135,15 @@ class Application:
         logger.debug(f"Created entity {entity} if absent.")
     
     def dump(self, file_path):
+        if self._state != _ApplicationState.ACTIVE:
+            message = f'Application {self._app_uuid} must first be activated by using it in a "with" block'
+            logger.error(message)
+            raise RuntimeError(message)
         _dump(self, file_path)
     
     def load(self, file_path):
+        if self._state != _ApplicationState.ACTIVE:
+            message = f'Application {self._app_uuid} must first be activated by using it in a "with" block'
+            logger.error(message)
+            raise RuntimeError(message)
         _load(self, file_path)

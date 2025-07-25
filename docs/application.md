@@ -26,7 +26,7 @@ Application(
     user: str = 'pa',
     password: str = '',
     transport: str = 'plain',
-    use_docker: bool = True,
+    use_docker: bool = False,
     migrate: bool = False,
     stop_container: bool = False,
     remove_container: bool = False
@@ -49,7 +49,7 @@ Application(
   Transport method to be used to communicate with the Polypheny instance. As of now 'plain' and 'unix' are available were 'plain' refers to TCP/IP.
 
 - `use_docker` (`bool`, optional):  
-  Wether to use Docker to manage the Polypheny instance. When set to 'True' PolyNOM searches for a Docker container running a Polypheny instance. If no container is found, a new one is created on which Polypheny is deployed automatically. If a container is present but stopped, the container will be started. If not specified, this defaults to 'True'. The container running Polypheny must be named 'polypheny'. 
+  Wether to use Docker to manage the Polypheny instance. When set to 'True' PolyNOM searches for a Docker container running a Polypheny instance. The container name can be specified in the PolyNOM config. If no container is found, a new one is created on which Polypheny is deployed automatically. If a container is present but stopped, the container will be started. If not specified, this defaults to 'False'.
 
 - `migrate` (`bool`, optional):  
   Wether to trigger automatic schema migration. If enabled, PolyNOM automatically compares the schema of the application with the one currently present on the Polypheny instance. Adjustments to the schmea are then made on instantiation of this application object. Defaults to `False`.
@@ -90,4 +90,36 @@ with app:
    # do something
 ```
 
-Apart from the initialization the `Application` does not provide any functions or methods ot be called by the user.
+## Manual Resource Handling
+In rare cases it might be necessary to use the application object without pythons resource manager. This is neither recommended nor necesssary for normal use cases. Below an example is given on how to handle resources manuall:
+
+```python
+from polynom.application import Application
+
+APP_UUID = 'a8817239-9bae-4961-a619-1e9ef5575eff'
+
+app = Application(APP_UUID, ('localhost', 20590))
+app.__enter__
+# use app here
+app.__exit__
+
+```
+
+## Methods
+
+### `dump(file_path: str)`
+
+Persists the database state of the application into a multi language query file.
+
+- `file_path` (`str`): The file to which to write the output of the dump command. If absent the file is created.
+- Raises `RuntimeError` if the application is not active. This is the case outside of the `with` block of the contect manager. 
+
+---
+
+### `load(file_path: str)`
+
+Loads a previously persisted database state of the application form a file. The current state is discarde and overwritten with the files contents.
+
+- Raises `RuntimeError` if the application is active. This is the case outside of the `with` block of the contect manager.
+- Raises `ValueError` in case the loaded file does not conform to the expected format, originiates form another application or is incompatible with the applications schema.
+- `file_path` (`str`): The file form which to read the state.
