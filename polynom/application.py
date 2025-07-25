@@ -20,7 +20,7 @@ class Application:
             user: str = cfg.get(cfg.DEFAULT_USER),
             password: str = cfg.get(cfg.DEFAULT_PASS),
             transport: str = cfg.get(cfg.DEFAULT_TRANSPORT),
-            use_docker: bool = True,
+            use_docker: bool = False,
             migrate: bool = False,
             stop_container: bool = False,
             remove_container: bool = False
