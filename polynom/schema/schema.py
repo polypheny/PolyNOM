@@ -37,6 +37,9 @@ class BaseSchema:
             "namespace_name": getattr(cls, "namespace_name", cfg.get(cfg.DEFAULT_NAMESPACE)),
             "fields": [field._to_dict() for field in cls._get_fields()]
         }
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__}: {self.data_model}, {self.namespace_name}, {self.entity_name}>"
             
         
 
