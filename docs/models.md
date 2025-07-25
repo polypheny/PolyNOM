@@ -166,7 +166,7 @@ PrimaryKeyField(
 - `previous_name` (`str`, optional):  
   This parameter is used in conjunction with automatic schema migration to rename this field. The field will be renamed from the value of this parameter to the name specified as the `db_field_name`. The default is `None`.
 
-#### ForeignKeyField
+#### `ForeignKeyField`
 
 This field represents a foreign key relationship to another entity in the database. It extends the `Field` class and allows referencing a specific field from another schema.
 

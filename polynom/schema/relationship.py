@@ -36,6 +36,10 @@ class Relationship:
 
         # Set new backref
         if value and self._back_populates:
+            if not hasattr(value, self._back_populates):
+                raise AttributeError(
+                f"Backref attribute '{self._back_populates}' not found on {value.__class__.__name__}"
+            )
             current_back = getattr(value, self._back_populates, None)
             if isinstance(current_back, list):
                 if instance not in current_back:
