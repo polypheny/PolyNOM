@@ -22,11 +22,8 @@ class BikeSchema(BaseSchema):
         Field('model', VarChar(50), nullable=False),
         ForeignKeyField(
             db_field_name='owner_id',
-            polytype=VarChar(36),
-            referenced_entity_name='User',
-            referenced_db_field_name='_entry_id',
+            referenced_schema=UserSchema,
             nullable=False,
-            python_field_name='owner_id'
         ),
     ]
 

@@ -1,5 +1,9 @@
-from typing import Type, TypeVar
+from __future__ import annotations
+from typing import Type, TypeVar, TYPE_CHECKING
 from polynom.schema.polytypes import _BaseType
+
+if TYPE_CHECKING:
+    from polynom.schema.schema import BaseSchema
 
 T = TypeVar('T', bound=_BaseType)
 
@@ -72,16 +76,19 @@ class PrimaryKeyField(Field):
         base["is_primary_key"] = True
         return base
         
-class ForeignKeyField(Field):
-    def __init__(self, db_field_name: str, polytype: Type[T], referenced_entity_name: str, referenced_db_field_name: str, nullable: bool = True, unique: bool = False, python_field_name: str = None, previous_name: str = None):
+class ForeignKeyField(Field):    
+    def __init__(self, db_field_name: str, referenced_schema: "type[BaseSchema]", referenced_db_field_name: str = '_entry_id', nullable: bool = True, unique: bool = False, python_field_name: str = None, previous_name: str = None):
+        polytype = referenced_schema._get_field_map()[referenced_db_field_name]._polytype
         super().__init__(db_field_name, polytype, nullable, unique, python_field_name, previous_name=previous_name)
-        self.referenced_entity_name: str = referenced_entity_name
+        self.referenced_namespace_name: str = referenced_schema.namespace_name
+        self.referenced_entity_name: str = referenced_schema.entity_name
         self.referenced_db_field_name: str = referenced_db_field_name
         
     def _to_dict(self):
         base = super()._to_dict()
         base.update({
             "is_foreign_key": True,
+            "references_namespace": self.referenced_namespace_name,
             "references_entity": self.referenced_entity_name,
             "references_field": self.referenced_db_field_name
         })

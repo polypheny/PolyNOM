@@ -179,7 +179,7 @@ class _SqlGenerator(_BaseGenerator):
             if isinstance(field, ForeignKeyField):
                 fk = (
                     f'FOREIGN KEY ("{field._db_field_name}") '
-                    f'REFERENCES "{field.referenced_entity_name}"("{field.referenced_db_field_name}")'
+                    f'REFERENCES "{field.referenced_namespace_name}"."{field.referenced_entity_name}"("{field.referenced_db_field_name}")'
                 )
                 foreign_keys.append(fk)
 
