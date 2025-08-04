@@ -48,7 +48,7 @@ class Application:
         self._state = _ApplicationState.INITIALIZED
 
     def __enter__(self):
-        if self._state:
+        if self._state != _ApplicationState.INITIALIZED:
             raise ValueError("Application must only be initialized once.")
         self._state = _ApplicationState.ACTIVE
         
