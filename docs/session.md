@@ -88,6 +88,17 @@ Discards all changes made as part of this session. This invalidates all tracked 
 
 ---
 
+#### `_execute(language, statement, parameters=None, namespace=None, fetch=True)`
+
+Executes a statement using the session's internal cursor. This method supports both DDL and DML operations across different query languages (e.g., SQL, Cypher, MQL).
+
+- `language`: The query language to use (e.g., `'sql'`, `'cypher'`, `'mongo'`).
+- `statement`: The statement string to be executed.
+- `parameters` (optional): A dictionary of parameters to bind in the statement. Parameterization is currently only supported for SQL.
+- `namespace` (optional): The namespace in which to execute the statement. If not specified or set to None, the default namespace specified in the PolyNOM config is used.
+- `fetch` (optional, default=`True`): If `True`, the result of the query is returned if present. If set to `False` no results are retrieved independent of the query type.
+---
+
 #### `get_session_state() → _SessionState`
 
 Returns the current state of the session.

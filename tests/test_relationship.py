@@ -1,57 +1,169 @@
 import pytest
 from polynom.schema.relationship import Relationship
 
-class User:
+class Cyclist:
     def __init__(self, name):
         self.name = name
         self.bikes = []
+        self.teams = []
+        self.primary_sponsor = None
 
-class Bike:
-    user: User = Relationship(User, back_populates="bikes")
+class RoadBike:
+    owner: Cyclist = Relationship(Cyclist, back_populates="bikes")
 
-    def __init__(self, brand, model, owner_id):
+    def __init__(self, brand, model):
         self.brand = brand
         self.model = model
-        self.owner_id = owner_id
+
+class Team:
+    member: Cyclist = Relationship(Cyclist, back_populates="teams")
+
+    def __init__(self, name):
+        self.name = name
+
+class Sponsor:
+    cyclist: Cyclist = Relationship(Cyclist)
+
+    def __init__(self, name):
+        self.name = name
 
 class TestRelationship:
-    def test_relationship_assignment_and_backref(self):
-        user = User("Alice")
-        bike = Bike("Trek", "X500", owner_id=1)
+    def test_bike_assignment_and_backref(self):
+        """
+        RoadBike assigned to Cyclist updates both forward and back references.
+        """
+        rider = Cyclist("Tadej Pogačar")
+        bike = RoadBike("Colnago", "V4Rs")
 
-        assert bike.user is None
-        assert user.bikes == []
+        assert bike.owner is None
+        assert rider.bikes == []
 
-        bike.user = user
-        assert bike.user is user
-        assert bike in user.bikes
+        bike.owner = rider
 
-    def test_relationship_reassignment_updates_backrefs(self):
-        user1 = User("Alice")
-        user2 = User("Bob")
-        bike = Bike("Trek", "X500", owner_id=1)
+        assert bike.owner is rider
+        assert bike in rider.bikes
 
-        bike.user = user1
-        assert bike in user1.bikes
-        assert bike not in user2.bikes
+    def test_bike_reassignment_removes_old_backref(self):
+        """
+        When a bike is reassigned to another Cyclist, the old backref is removed.
+        """
+        rider1 = Cyclist("Jonas Vingegaard")
+        rider2 = Cyclist("Remco Evenepoel")
+        bike = RoadBike("Cervélo", "R5")
 
-        bike.user = user2
-        assert bike in user2.bikes
-        assert bike not in user1.bikes
+        bike.owner = rider1
+        assert bike in rider1.bikes
 
-    def test_relationship_removal(self):
-        user = User("Alice")
-        bike = Bike("Trek", "X500", owner_id=1)
+        bike.owner = rider2
+        assert bike in rider2.bikes
+        assert bike not in rider1.bikes
 
-        bike.user = user
-        assert bike in user.bikes
+    def test_team_bidirectional_membership(self):
+        """
+        Cyclist assigned to Team updates both team.member and cyclist.teams list.
+        """
+        cyclist = Cyclist("Primož Roglič")
+        team = Team("BORA-hansgrohe")
 
-        bike.user = None
-        assert bike.user is None
-        assert bike not in user.bikes
+        assert team.member is None
+        assert cyclist.teams == []
 
-    def test_invalid_relationship_assignment(self):
-        bike = Bike("Trek", "X500", owner_id=1)
+        team.member = cyclist
+
+        assert team.member is cyclist
+        assert team in cyclist.teams
+
+    def test_team_reassignment(self):
+        """
+        Team reassigned to a different Cyclist updates membership cleanly.
+        """
+        rider1 = Cyclist("Geraint Thomas")
+        rider2 = Cyclist("Tom Pidcock")
+        team = Team("INEOS Grenadiers")
+
+        team.member = rider1
+        assert team in rider1.teams
+
+        team.member = rider2
+        assert team in rider2.teams
+        assert team not in rider1.teams
+
+    def test_unidirectional_sponsorship(self):
+        """
+        Sponsor assigned to Cyclist (without back_populates) does not update cyclist.
+        """
+        cyclist = Cyclist("Mathieu van der Poel")
+        sponsor = Sponsor("Alpecin-Deceuninck")
+
+        assert sponsor.cyclist is None
+
+        sponsor.cyclist = cyclist
+        assert sponsor.cyclist is cyclist
+
+        # No reverse relationship defined
+        assert cyclist.primary_sponsor is None
+
+    def test_null_assignment_removes_bike_backref(self):
+        """
+        Setting bike.owner to None removes it from cyclist.bikes.
+        """
+        cyclist = Cyclist("Wout van Aert")
+        bike = RoadBike("Canyon", "Aeroad")
+
+        bike.owner = cyclist
+        assert bike in cyclist.bikes
+
+        bike.owner = None
+        assert bike.owner is None
+        assert bike not in cyclist.bikes
+
+    def test_invalid_relationship_type_raises(self):
+        """
+        Assigning the wrong type to a relationship should raise TypeError.
+        """
+        bike = RoadBike("Specialized", "Tarmac")
         with pytest.raises(TypeError):
-            bike.user = "not a user instance"
+            bike.owner = "NotACyclist"
+
+    def test_relationship_type_check_fails_for_wrong_class(self):
+        """
+        Relationship should raise TypeError if the assigned value is not of the correct type.
+        """
+        class NotACyclist:
+            def __init__(self, name):
+                self.name = name
+
+        outsider = NotACyclist("Random Person")
+        team = Team("Team Jumbo-Visma")
+
+        with pytest.raises(TypeError):
+            team.member = outsider
+
+    def test_multiple_bikes_same_cyclist(self):
+        """
+        One cyclist can have multiple bikes (many-to-one relationship).
+        """
+        cyclist = Cyclist("Filippo Ganna")
+        bike1 = RoadBike("Pinarello", "Dogma F")
+        bike2 = RoadBike("Pinarello", "Bolide TT")
+
+        bike1.owner = cyclist
+        bike2.owner = cyclist
+
+        assert bike1.owner is cyclist
+        assert bike2.owner is cyclist
+        assert bike1 in cyclist.bikes
+        assert bike2 in cyclist.bikes
+    
+    def test_relationship_create_backref_if_attribute_missing(self):
+        """
+        If the target object lacks the back_populates attribute, Relationship should raise an AttributeError.
+        """
+        cyclist = Cyclist("Mark Cavendish")
+        del cyclist.teams  # Simulate missing backref attribute
+
+        team = Team("Astana Qazaqstan")
+
+        with pytest.raises(AttributeError, match="Backref attribute 'teams' not found on Cyclist"):
+            team.member = cyclist
 

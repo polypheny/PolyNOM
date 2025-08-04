@@ -126,7 +126,7 @@ Field(
   Specifies wether the value of that field is allowed to be `None`. This defaults to `True`.
 
 - `default` (`Any`, optional):  
-  Specifies a default value to use for this field if no value had been specified. The value specified must be representable using the specified `Polytype`.
+  Specifies a default value to use for this field if no value had been specified. The value specified must be representable using the specified `Polytype`. The default values is transferred as a constant to the underlying polypheny instance. Non constant default values such as ones returned from a python method are to be set in the constructor of the model class.
 
 - `unique` (`bool`, optional):  
   Specifies wether the value of this field must be unique across all entries. This default to `False`.
@@ -168,14 +168,13 @@ PrimaryKeyField(
 
 #### `ForeignKeyField`
 
-This field references a field of another entity.
+This field represents a foreign key relationship to another entity in the database. It extends the `Field` class and allows referencing a specific field from another schema.
 
 ```python
 ForeignKeyField(
     db_field_name: str,
-    polytype: Type[_BaseType],
-    referenced_entity_name: str,
-    referenced_db_field_name: str,
+    referenced_schema: type[BaseSchema],
+    referenced_db_field_name: str = '_entry_id',
     nullable: bool = True,
     unique: bool = False,
     python_field_name: str = None,
@@ -184,28 +183,25 @@ ForeignKeyField(
 ```
 
 - `db_field_name` (`str`, required):  
-  The name of the field in the entity on the database that will store the values of this schema field. In the normal case, this must be consistent with the name of the corresponding field in the model class.
+  The name of the field in the database that will store the foreign key value. This must correspond to a field in the target entity.
 
-- `polytype` (`Polytype`, required):  
-  The database internal datatype to be used to store the values of that field. Te available datatypes are discussed in greated details in the next section.
+- `referenced_schema` (`type[BaseSchema]`, required):  
+  The schema class that defines the entity being referenced. This is used to extract metadata such as the target namespace, entity name, and field type.
 
-- `referenced_entity_name` (`str`, required):  
-  The name of the entity from which the referenced field originates.
+- `referenced_db_field_name` (`str`, optional, default=`'_entry_id'`):  
+  The name of the field in the referenced entity to which this field points. Defaults to the internal entry ID providing a unique reference to an entry of the given entity.
 
-- `referenced_db_field_name` (`str`, required):  
-  The name of the referenced field.
+- `nullable` (`bool`, optional, default=`True`):  
+  Specifies whether the field can be set to `None`.
 
-- `nullable` (`bool`, optional):  
-  Specifies wether the value of that field is allowed to be `None`. This defaults to `True`.
+- `unique` (`bool`, optional, default=`False`):  
+  If set to `True`, each value in this field must be unique across all entries.
 
-- `unique` (`bool`, optional):  
-  Specifies wether the value of this field must be unique across all entries. This default to `False`.
+- `python_field_name` (`str`, optional, default=`None`):  
+  Allows the specification of a different field name for use in Python code, useful in cases of reserved keywords or naming conflicts in the database.
 
-- `python_field_name` (`str`, optional):  
-  A situation might arise in which the field name used in the model class can not be used as a field name on the underlying Polypheny instance. This might be due to a conflict with a reserved key word or with data already present on the instance. In such cases an alias can be specified using this parameter. The parameter `db_field_name` then defines the name on the underlying Polypheny instance while `python_field_name` specifies the name of the corresponding field in the model class. This default to `None`.
-
-- `previous_name` (`str`, optional):  
-  This parameter is used in conjunction with automatic schema migration to rename this field. The field will be renamed from the value of this parameter to the name specified as the `db_field_name`. The default is `None`.
+- `previous_name` (`str`, optional, default=`None`):  
+  Used for automatic schema migration. If specified, the field will be renamed from this old name to `db_field_name`.
 
 ### Data Types
 These types can be specified for `Field`, `PrimaryKeyField`, and `ForeignKeyField` to define the data format and constraints in the schema. Each polytype maps to a specific Python type.

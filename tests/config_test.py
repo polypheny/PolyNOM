@@ -27,17 +27,17 @@ def reset_config_state():
             break
 
 def test_get_internal():
-    assert cfg.get(cfg.INTERNAL_NAMESPACE) == 'internal'
+    assert cfg.get(cfg.INTERNAL_NAMESPACE) == 'polynom_internal'
     assert cfg.get(cfg.CHANGE_LOG_TABLE) == 'change_log'
 
 def test_get_user_configurable():
-    assert cfg.get(cfg.DEFAULT_NAMESPACE) == 'public'
+    assert cfg.get(cfg.DEFAULT_NAMESPACE) == 'polynom_entities'
     assert cfg.get(cfg.DEFAULT_USER) == 'pa'
 
 def test_get_derived():
     derived = cfg.get(cfg.CHANGE_LOG_IDENTIFIER)
     assert isinstance(derived, str)
-    assert derived == "internal.change_log"
+    assert derived == "polynom_internal.change_log"
 
 def test_set_user_configurable():
     cfg.set(cfg.DEFAULT_NAMESPACE, 'test_ns')

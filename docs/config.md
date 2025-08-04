@@ -18,7 +18,7 @@ The `config` module manages all configurable options used by PolyNOM. It disting
 All values are managed as key value pairs. Methods are provided allowing to set and get values based on their keys. The keys themselves are provided as constants by the config.py. The config should only be modified if no application is active. Ignoring this might cause data corruption.
 In the following the metods and keys available are discussed.
 
-## Mathods
+## Methods
 
 ### `get(key: str) -> Any`
 
@@ -61,7 +61,7 @@ Each configuration key is available as a named constant (e.g., `cfg.DEFAULT_USER
 
 ### Internal Constants (Read-only)
 
-- `INTERNAL_NAMESPACE`: `"internal"`  
+- `INTERNAL_NAMESPACE`: `"polynom_internal"`  
   Namespace reserved for system-level metadata and tracking.
 
 - `CHANGE_LOG_TABLE`: `"change_log"`  
@@ -73,10 +73,19 @@ Each configuration key is available as a named constant (e.g., `cfg.DEFAULT_USER
 - `SNAPSHOT_TABLE`: `"snapshot"`  
   Table used to store snapshots of schema and mapping metadata.
 
+- `DUMP_FORMAT_VERSION`: `1`  
+  The version of the file structure used for dumps. Dumps must match the format version to be imported correctly.
+
+- `DROP_PROTECTED_NAMESPACES`: `["public"]`  
+  Namespaces that are not dropped on the import of dumps. This list contains the default namespace 'public' which cannot be dropped.
+
 ### User Configurable Keys
 
 - `DEFAULT_NAMESPACE`:  
-  Default namespace used for schema deployment. Default: `'public'`
+  Default namespace used for schema deployment. Default: `'polynom_entities'`
+
+- `DEFAULT_DATA_MODEL`:  
+  Default data model to use for namespaces specified in the schema objects. As of now only `'RELATIONAL'` is supported while `'DOCUMENT'` and `'GRAPH'` are the alternatives. Default: `'RELATIONAL'`
 
 - `POLYPHENY_CONTAINER_NAME`:  
   Name of the Docker container running Polypheny. Default: `'polypheny'`

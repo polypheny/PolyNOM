@@ -1,7 +1,6 @@
 import inspect
 import logging
 import polypheny
-import json
 import uuid
 from json import dumps
 from typing import Any, TYPE_CHECKING
@@ -11,6 +10,7 @@ from dataclasses import dataclass, field
 from polynom.model import BaseModel
 from polynom.reflection import ChangeLog
 from polynom.schema.relationship import Relationship
+from polynom.statement import _SqlGenerator, Statement
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +30,9 @@ class Session:
         log_user: str = None,
     ):
 
-        from polynom.application import Application
-        if not application._initialized:
-            message = "The application must be initialized before its sessions"
+        from polynom.application import Application, _ApplicationState
+        if application._state != _ApplicationState.ACTIVE:
+            message = "The application must be active on session creation"
             logger.error(message)
             raise ValueError(message)
             
@@ -44,6 +44,8 @@ class Session:
         self._cursor = None
         self._state = _SessionState.INITIALIZED
         self._tracked_models: dict[str, BaseModel] = {}
+
+        self._generator = _SqlGenerator()
 
     def __enter__(self):
         if self._state == _SessionState.ACTIVE:
@@ -72,22 +74,11 @@ class Session:
             raise RuntimeError(message)
 
     def _update(self, model):
-        entity = model.schema.entity_name
-        namespace = model.schema.namespace_name
-        data = model._to_update_dict()
-
         if not hasattr(model, "_entry_id") or model._entry_id is None:
             raise ValueError("Model must have an _entry_id to perform update.")
 
-        if '_entry_id' in data:
-            data.pop('_entry_id')
-
-        set_clause = ', '.join(f"{col} = ?" for col in data.keys())
-        values = list(data.values())
-        values.append(model._entry_id)
-    
-        sql = f'UPDATE "{namespace}"."{entity}" SET {set_clause} WHERE _entry_id = ?'
-        self._cursor.executeany("sql", sql, values, namespace=namespace)
+        statement = self._generator._update(model)
+        statement.execute(self._cursor)
 
     def _update_change_log(self, model, diff: dict):   
         field_map = model.schema._get_field_map()
@@ -99,7 +90,9 @@ class Session:
             change_data[field_name] = [old_serialized, new_serialized]
 
         change_log = ChangeLog(
+            self._application._app_uuid,
             model._entry_id,
+            model.schema.namespace_name,
             model.schema.entity_name,
             self._log_user,
             datetime.now(),
@@ -121,16 +114,8 @@ class Session:
             self._track(model)
             self._add_related_models(model)
         
-        entity = model.schema.entity_name
-        namespace = model.schema.namespace_name
-        data = model._to_insert_dict()
-
-        columns = ', '.join(data.keys())
-        placeholders = ', '.join(['?'] * len(data))
-        values = tuple(data.values())
-        
-        sql = f'INSERT INTO "{namespace}"."{entity}" ({columns}) VALUES ({placeholders})'
-        self._cursor.executeany("sql" ,sql, values, namespace=namespace)
+        statement = self._generator._insert(model)
+        statement.execute(self._cursor)
             
     def add_all(self, models, tracking=True):
         # session state is checked by add
@@ -168,19 +153,30 @@ class Session:
         for model in models:
             self._track(model)
         
-    def _execute(self, language, statement, parameters=None, namespace=None, fetch=True ):
+    def _execute(self, language, statement, parameters=None, namespace=None, fetch=True):
         self._cursor.executeany(language, statement, params=parameters, namespace=namespace)
         if fetch:
-            return self._cursor.fetchall()
+            try:
+                return self._cursor.fetchall()
+            except Exception:
+                return
+        return
+
+    def _execute(self, statement: Statement, fetch=True):
+        statement.execute(self._cursor)
+        if fetch:
+            try:
+                return self._cursor.fetchall()
+            except Exception:
+                return
         return
 
     def delete(self, model):
         self._throw_if_not_active()
         
-        entity = model.schema.entity_name
-        namespace = model.schema.namespace_name
-        sql = f'DELETE FROM "{namespace}"."{entity}" WHERE _entry_id = ?'
-        self._cursor.executeany("sql", sql, (model._entry_id,), namespace=model.schema.namespace_name)
+        statement = self._generator._delete(model)
+        statement.execute(self._cursor)
+
         if model._entry_id in self._tracked_models:
             model._is_active = False
 

@@ -1,13 +1,15 @@
 from collections import defaultdict, deque
 from polynom.schema.field import ForeignKeyField
 from datetime import datetime
-import os
-import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 _registered_schemas = set()
 _sorted_schemas = None
 
 def register_schema(schema):
+    logger.debug(f'Schema registered: {str(schema)}')
     _registered_schemas.add(schema)
 
 def _get_registered_schemas():
@@ -28,6 +30,11 @@ def _sort_by_foreign_key(schemas):
         name = current_schema.entity_name
         for f in current_schema.fields:
             if isinstance(f, ForeignKeyField):
+                if f.referenced_entity_name not in schemas_by_name:
+                    raise RuntimeError(
+                        f"Referenced schema '{f.referenced_entity_name}'"
+                        f"not found among input schemas"
+                    )
                 dependencys[name].add(f.referenced_entity_name)
                 reverse_deps[f.referenced_entity_name].add(name)
 
@@ -45,7 +52,7 @@ def _sort_by_foreign_key(schemas):
         raise RuntimeError("Circular FK dependency")
     return [schemas_by_name[name] for name in ordered_names]
     
-def _to_json():
+def _to_dict():
     return {
         "version": datetime.now().strftime("%Y%m%dT%H%M%S"),
         "schemas": [schema._to_dict() for schema in _get_ordered_schemas()]
