@@ -35,6 +35,7 @@ class BaseSchema:
         return {
             "entity_name": cls.entity_name,
             "namespace_name": getattr(cls, "namespace_name", cfg.get(cfg.DEFAULT_NAMESPACE)),
+            "data_model": getattr(cls, "data_model", DataModel(cfg.get(cfg.DEFAULT_DATA_MODEL))).name,
             "fields": [field._to_dict() for field in cls._get_fields()]
         }
 
