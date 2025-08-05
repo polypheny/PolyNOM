@@ -29,7 +29,7 @@ Optionally:
 
 All optional parameters can be omitted if not required.
 
-Each schema class must inherit from `BaseSchema` and must be registered using `register_schema()`. An example of a schema to store road bikes is given below.
+Each schema class must inherit from `BaseSchema` and must be registered using `register_schema()`. As an alternative to `register_schema()` the annotaiton `@polynom_schema` can be applied on the schema class. An example of a schema to store road bikes is given below.
 
 ```python
 from polynom.schema.schema_registry import register_schema

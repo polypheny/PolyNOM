@@ -8,6 +8,10 @@ logger = logging.getLogger(__name__)
 _registered_schemas = set()
 _sorted_schemas = None
 
+def polynom_schema(cls):
+    register_schema(cls)
+    return cls
+
 def register_schema(schema):
     logger.debug(f'Schema registered: {str(schema)}')
     _registered_schemas.add(schema)
