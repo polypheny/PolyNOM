@@ -7,7 +7,7 @@ from polynom.schema.field import PrimaryKeyField, ForeignKeyField
 
 if TYPE_CHECKING:
     from polynom.session import Session
-    from polynom.model import BaseModel
+    from polynom.model.model import BaseModel
     
 logger = logging.getLogger(__name__)
 

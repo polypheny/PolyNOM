@@ -7,9 +7,9 @@ from typing import Any, TYPE_CHECKING
 from datetime import datetime
 from enum import Enum, auto
 from dataclasses import dataclass, field
-from polynom.model import BaseModel
+from polynom.model.model import BaseModel
 from polynom.reflection import ChangeLog
-from polynom.schema.relationship import Relationship
+from polynom.model.relationship import Relationship
 from polynom.statement import _SqlGenerator, Statement
 
 logger = logging.getLogger(__name__)

@@ -29,14 +29,15 @@ Optionally:
 
 All optional parameters can be omitted if not required.
 
-Each schema class must inherit from `BaseSchema` and must be registered using `register_schema()`. An example of a schema to store road bikes is given below.
+Each schema class must inherit from `BaseSchema` and must be registered using the `@polynom_schema` decorator. An example of a schema to store road bikes is given below.
 
 ```python
-from polynom.schema.schema_registry import register_schema
+from polynom.schema.schema_registry import polynom_schema
 from polynom.schema.field import Field
 from polynom.schema.polytypes import VarChar, Decimal
 from polynom.schema.schema import BaseSchema
 
+@polynom_schema
 class BikeSchema(BaseSchema):
     namespace_name = 'vehicles' # optional
     entity_name = 'Bike'
@@ -49,8 +50,6 @@ class BikeSchema(BaseSchema):
         Field('price', Decimal())
     ]
 
-# Make schemas discoverable by PolyNOM
-register_schema(BikeSchema)
 ```
 It can be observed that no primary key is defined in this schema. This is permitted as PolyNOM automatically creates a entry identifier of very high probabilistic uniqueness for each inserted entry. Thereby the probability to find a duplicate within 103 trillion entries is one in a billion. This identifier field is not listed in the schema but is accessible on the corresponding model class. The use of these internal identifiers as an alternative to autoincrement or manualy managed id fields is strongly encouraged. 
 
@@ -64,12 +63,16 @@ A model represents a single entry for a given schema. Each model must:
 
 Further each model offers the field `_entry_id` which returns a unique identifier for the given entry. These identifiers are handled by PolyNOM and should not be modified or set manually.
 
+In contrast to schemas, registering models is optional. Models can be registered using the `@polynom_model` decorator. This allows them to be resolved by relationships using their fully qualified name string.
+
 The following model matches our `BikeSchema` from step one.
 
 ```python
-from polynom.model import BaseModel
+from polynom.model.model import BaseModel
+from polynom.model.model_registry import polynom_model
 from myproject.bike.model import Bike
 
+@polynom_model
 class Bike(BaseModel):
     schema = BikeSchema()
 

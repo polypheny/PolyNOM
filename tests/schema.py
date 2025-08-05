@@ -1,9 +1,9 @@
-from polynom.schema.schema_registry import register_schema
-from polynom.schema.field import Field, PrimaryKeyField, ForeignKeyField
-from polynom.schema.polytypes import VarChar, Integer, Boolean
+from polynom.schema.schema_registry import polynom_schema
+from polynom.schema.field import Field, ForeignKeyField
+from polynom.schema.polytypes import VarChar, Boolean
 from polynom.schema.schema import BaseSchema
-from polynom.schema.relationship import Relationship
 
+@polynom_schema
 class UserSchema(BaseSchema):
     entity_name = 'User'
     fields = [
@@ -15,6 +15,7 @@ class UserSchema(BaseSchema):
         Field('is_admin', Boolean()),
     ]
 
+@polynom_schema
 class BikeSchema(BaseSchema):
     entity_name = 'Bike'
     fields = [
@@ -26,6 +27,3 @@ class BikeSchema(BaseSchema):
             nullable=False,
         ),
     ]
-
-register_schema(UserSchema)
-register_schema(BikeSchema)
