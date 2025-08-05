@@ -29,7 +29,7 @@ Optionally:
 
 All optional parameters can be omitted if not required.
 
-Each schema class must inherit from `BaseSchema` and must be registered using the `@polynom_schema` annotation. An example of a schema to store road bikes is given below.
+Each schema class must inherit from `BaseSchema` and must be registered using the `@polynom_schema` decorator. An example of a schema to store road bikes is given below.
 
 ```python
 from polynom.schema.schema_registry import polynom_schema
@@ -63,12 +63,16 @@ A model represents a single entry for a given schema. Each model must:
 
 Further each model offers the field `_entry_id` which returns a unique identifier for the given entry. These identifiers are handled by PolyNOM and should not be modified or set manually.
 
+In contrast to schemas, registering models is optional. Models can be registered using the `@polynom_model` decorator. This allows them to be resolved by relationships using their fully qualified name string.
+
 The following model matches our `BikeSchema` from step one.
 
 ```python
-from polynom.model import BaseModel
+from polynom.model.model import BaseModel
+from polynom.model.model_registry import polynom_model
 from myproject.bike.model import Bike
 
+@polynom_model
 class Bike(BaseModel):
     schema = BikeSchema()
 

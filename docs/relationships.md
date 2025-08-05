@@ -21,11 +21,12 @@ Schema-level references define how entities relate at the database level. These 
 First, a simple schema for the `Owner` id created. No references are defined here yet.
 
 ```python
-from polynom.schema.schema_registry import register_schema
+from polynom.schema.schema_registry import polynom_schema
 from polynom.schema.field import Field
 from polynom.schema.polytypes import VarChar
 from polynom.schema.schema import BaseSchema
 
+@polynom_schema
 class OwnerSchema(BaseSchema):
     namespace_name = 'users'
     entity_name = 'Owner'
@@ -34,8 +35,6 @@ class OwnerSchema(BaseSchema):
         Field('name', VarChar(100), nullable=False),
         Field('email', VarChar(100), nullable=False, unique=True),
     ]
-
-register_schema(OwnerSchema)
 ```
 
 #### Step 1b: Define a Schema for the `Bike`
@@ -45,6 +44,7 @@ This step creates the schema for the `Bike`. We use a `ForeignKeyField` to creat
 ```python
 from polynom.schema.field import ForeignKeyField
 
+@polynom_schema
 class BikeSchema(BaseSchema):
     namespace_name = 'vehicles'
     entity_name = 'Bike'
@@ -58,8 +58,6 @@ class BikeSchema(BaseSchema):
         ForeignKeyField('owner_id', referenced_schema=OwnerSchema),
         # example for specific field: ForeignKeyField('owner_id', referenced_schema=OwnerSchema, referenced_db_field_name='name'),
     ]
-
-register_schema(BikeSchema)
 ```
 
 ### Object Relationships
@@ -135,4 +133,42 @@ class TeamCyclistAssocSchema(BaseSchema):
     ]
 ```
 
-Note that PolyNOM does not automatically create assocoation entities for many-to-many relationships.
+## Circular Dependencies
+
+Consider a bidirectional relationship between two models, `Author` and `Book`. Model `Author` must define a relationship to `Book`, and `Book` must define a relationship back to `Author`. However, at the time `Author` is being defined, the `Book` class might not yet be declared. This results in a circular dependency issue if direct class references are used.
+To circumvent this limitation, model classes can also be specified using their **fully qualified name** (FQN) as a string, instead of a direct class reference. The FQN follows Python's standard module path syntax, such as:
+
+```
+"myapp.models.author.Author"
+```
+
+All models intended to be used in this way must be registered using the `@polynom_model` decorator. The model can then be resolved lazily at runtime, avoiding import-time circular dependency errors.
+
+### Example
+
+```python
+# myapp/models/author.py
+
+from polynom.model import BaseModel, Relationship, polynom_model
+
+@polynom_model
+class Author(BaseModel):
+    books = Relationship(
+        target_model="myapp.models.book.Book",  # FQN string reference
+        back_populates="author"
+    )
+```
+
+```python
+# myapp/models/book.py
+
+from polynom.model import BaseModel, Relationship, polynom_model
+from myapp.models.author import Author  # optional, needed only if directly referencing Author
+
+@polynom_model
+class Book(BaseModel):
+    author = Relationship(
+        target_model=Author,
+        back_populates="books"
+    )
+```
