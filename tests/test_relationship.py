@@ -1,7 +1,10 @@
 import pytest
-from polynom.schema.relationship import Relationship
+from polynom.model.relationship import Relationship
+from polynom.model.model import BaseModel
+from polynom.model.model_registry import polynom_model
 
-class Cyclist:
+@polynom_model
+class Cyclist(BaseModel):
     def __init__(self, name):
         self.name = name
         self.bikes = []
@@ -15,17 +18,19 @@ class RoadBike:
         self.brand = brand
         self.model = model
 
+
 class Team:
-    member: Cyclist = Relationship(Cyclist, back_populates="teams")
+    member: Cyclist = Relationship("tests.test_relationship.Cyclist", back_populates="teams")
 
     def __init__(self, name):
         self.name = name
 
 class Sponsor:
-    cyclist: Cyclist = Relationship(Cyclist)
+    cyclist: Cyclist = Relationship("tests.test_relationship.Cyclist")
 
     def __init__(self, name):
         self.name = name
+
 
 class TestRelationship:
     def test_bike_assignment_and_backref(self):

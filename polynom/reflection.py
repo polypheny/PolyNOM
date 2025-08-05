@@ -1,10 +1,12 @@
-from polynom.model import BaseModel
-from polynom.schema.schema_registry import register_schema
+from polynom.model.model import BaseModel
+from polynom.schema.schema_registry import polynom_schema
+from polynom.model.model_registry import polynom_model
 from polynom.schema.schema import BaseSchema
 from polynom.schema.field import Field
 from polynom.schema.polytypes import Timestamp, Text, Json
 import polynom.config as cfg
 
+@polynom_schema
 class ChangeLogSchema(BaseSchema):
     entity_name = cfg.get(cfg.CHANGE_LOG_TABLE)
     namespace_name = cfg.get(cfg.INTERNAL_NAMESPACE)
@@ -18,6 +20,7 @@ class ChangeLogSchema(BaseSchema):
         Field('changes', Json(), nullable=False),
     ]
 
+@polynom_model
 class ChangeLog(BaseModel):
     schema = ChangeLogSchema()
 
@@ -31,6 +34,7 @@ class ChangeLog(BaseModel):
         self.date_of_change = date_of_change
         self.changes = changes
 
+@polynom_schema
 class SchemaSnapshotSchema(BaseSchema):
     entity_name = cfg.get(cfg.SNAPSHOT_TABLE)
     namespace_name = cfg.get(cfg.INTERNAL_NAMESPACE)
@@ -38,12 +42,10 @@ class SchemaSnapshotSchema(BaseSchema):
         Field('snapshot', Json(), nullable=False),
     ]
 
+@polynom_model
 class SchemaSnapshot(BaseModel):
     schema = SchemaSnapshotSchema()
 
     def __init__(self, snapshot: dict, _entry_id = None):
         super().__init__(_entry_id)
         self.snapshot = snapshot
-
-register_schema(ChangeLogSchema)
-register_schema(SchemaSnapshotSchema)

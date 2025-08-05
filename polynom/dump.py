@@ -5,7 +5,7 @@ import polynom.config as cfg
 from polynom.session import Session
 from polynom.schema.schema_registry import _get_ordered_schemas, _to_dict
 from polynom.statement import _SqlGenerator, Statement, get_generator_for_data_model
-from polynom.model import FlexModel
+from polynom.model.model import FlexModel
 from polynom.reflection import ChangeLog
 
 logger = logging.getLogger(__name__)

@@ -29,14 +29,15 @@ Optionally:
 
 All optional parameters can be omitted if not required.
 
-Each schema class must inherit from `BaseSchema` and must be registered using `register_schema()`. As an alternative to `register_schema()` the annotaiton `@polynom_schema` can be applied on the schema class. An example of a schema to store road bikes is given below.
+Each schema class must inherit from `BaseSchema` and must be registered using the `@polynom_schema` annotation. An example of a schema to store road bikes is given below.
 
 ```python
-from polynom.schema.schema_registry import register_schema
+from polynom.schema.schema_registry import polynom_schema
 from polynom.schema.field import Field
 from polynom.schema.polytypes import VarChar, Decimal
 from polynom.schema.schema import BaseSchema
 
+@polynom_schema
 class BikeSchema(BaseSchema):
     namespace_name = 'vehicles' # optional
     entity_name = 'Bike'
@@ -49,8 +50,6 @@ class BikeSchema(BaseSchema):
         Field('price', Decimal())
     ]
 
-# Make schemas discoverable by PolyNOM
-register_schema(BikeSchema)
 ```
 It can be observed that no primary key is defined in this schema. This is permitted as PolyNOM automatically creates a entry identifier of very high probabilistic uniqueness for each inserted entry. Thereby the probability to find a duplicate within 103 trillion entries is one in a billion. This identifier field is not listed in the schema but is accessible on the corresponding model class. The use of these internal identifiers as an alternative to autoincrement or manualy managed id fields is strongly encouraged. 
 

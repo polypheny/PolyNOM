@@ -9,15 +9,9 @@ _registered_schemas = set()
 _sorted_schemas = None
 
 def polynom_schema(cls):
-    register_schema(cls)
+    logger.debug(f'Schema registered: {str(cls)}')
+    _registered_schemas.add(cls)
     return cls
-
-def register_schema(schema):
-    logger.debug(f'Schema registered: {str(schema)}')
-    _registered_schemas.add(schema)
-
-def _get_registered_schemas():
-    return _registered_schemas
     
 def _get_ordered_schemas():
     global _sorted_schemas
