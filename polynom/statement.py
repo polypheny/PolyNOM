@@ -1,9 +1,9 @@
+from polynom.statement_logger import logger
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Tuple
 from polynom.schema.schema import DataModel
 from polynom.schema.field import PrimaryKeyField, ForeignKeyField
-
 
 @dataclass
 class Statement:
@@ -32,6 +32,9 @@ class Statement:
 
         namespace_comment = f'{self.language}@{self.namespace}' if self.namespace else f'{self.language}@None'
         return f'/*{namespace_comment}*/ {stmt}'
+    
+    def log(self) -> str:
+        logger.info(self.dump())
     
     @staticmethod
     def _format_value(value: Any) -> str:

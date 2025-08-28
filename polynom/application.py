@@ -126,10 +126,14 @@ class Application:
         
         generator = _SqlGenerator()
 
-        generator._create_namespace(namespace, data_model, if_not_exists=True).execute(self._cursor)
+        statement = generator._create_namespace(namespace, data_model, if_not_exists=True)
+        statement.log() #TODO log statement
+        statement.execute(self._cursor)
         logger.debug(f"Created namespace {namespace} if absent.")
 
-        generator._define_entity(schema_class, if_not_exists=True).execute(self._cursor)
+        statement = generator._define_entity(schema_class, if_not_exists=True)
+        statement.log() #TODO log statement
+        statement.execute(self._cursor)
         self._conn.commit()
 
         logger.debug(f"Created entity {entity} if absent.")

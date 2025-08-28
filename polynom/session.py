@@ -78,6 +78,7 @@ class Session:
             raise ValueError("Model must have an _entry_id to perform update.")
 
         statement = self._generator._update(model)
+        statement.log()
         statement.execute(self._cursor)
 
     def _update_change_log(self, model, diff: dict):   
@@ -115,6 +116,7 @@ class Session:
             self._add_related_models(model)
         
         statement = self._generator._insert(model)
+        statement.log()
         statement.execute(self._cursor)
             
     def add_all(self, models, tracking=True):
@@ -163,6 +165,7 @@ class Session:
         return
 
     def _execute(self, statement: Statement, fetch=True):
+        statement.log()
         statement.execute(self._cursor)
         if fetch:
             try:
@@ -175,6 +178,7 @@ class Session:
         self._throw_if_not_active()
         
         statement = self._generator._delete(model)
+        statement.log()
         statement.execute(self._cursor)
 
         if model._entry_id in self._tracked_models:
