@@ -127,12 +127,12 @@ class Application:
         generator = _SqlGenerator()
 
         statement = generator._create_namespace(namespace, data_model, if_not_exists=True)
-        statement.log() #TODO log statement
+        statement.log(self._app_uuid)
         statement.execute(self._cursor)
         logger.debug(f"Created namespace {namespace} if absent.")
 
         statement = generator._define_entity(schema_class, if_not_exists=True)
-        statement.log() #TODO log statement
+        statement.log(self._app_uuid)
         statement.execute(self._cursor)
         self._conn.commit()
 

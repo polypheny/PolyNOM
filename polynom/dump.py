@@ -222,7 +222,7 @@ def _execute_statements(application, file):
 
             try:
                 logger.debug(statement.dump())
-                statement.log()
+                statement.log(application._app_uuid)
                 session._execute(statement, fetch=False)
             except Exception as e:
                 logger.error(f"Error executing line {line_number}: {e}")

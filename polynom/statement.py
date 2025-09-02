@@ -1,4 +1,4 @@
-from polynom.statement_logger import logger
+from polynom.statement_logger import LoggerFactory
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Tuple
@@ -33,7 +33,10 @@ class Statement:
         namespace_comment = f'{self.language}@{self.namespace}' if self.namespace else f'{self.language}@None'
         return f'/*{namespace_comment}*/ {stmt}'
     
-    def log(self) -> str:
+    def log(self, app_uuid: str = None) -> str:
+        if not app_uuid:
+            raise ValueError("app_uuid must be provided for logging")
+        logger = LoggerFactory.get_logger(app_uuid)
         logger.info(self.dump())
     
     @staticmethod
