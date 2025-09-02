@@ -29,7 +29,8 @@ Application(
     use_docker: bool = False,
     migrate: bool = False,
     stop_container: bool = False,
-    remove_container: bool = False
+    remove_container: bool = False,
+    log_statements: bool = False
 )
 ```
 
@@ -59,6 +60,9 @@ Application(
 
 - `remove_container` (`bool`, optional):  
   If `True`, removes the Docker container running the Polypheny instance after stopping. Defaults to `False`.
+
+- `remove_container` (`bool`, optional):  
+  If `True`, all data- or schema modifying statements executed by this application are logged. Defaults to `False`.
 
 ## Examples
 ```python

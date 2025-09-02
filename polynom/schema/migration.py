@@ -1,6 +1,8 @@
 from __future__ import annotations
 import logging
 
+from polynom.statement import Statement
+
 logger = logging.getLogger(__name__)
 
 class Migrator:
@@ -114,6 +116,13 @@ class Migrator:
         self._generate_statements(diff)
         for namespace_name, statement in self.statements_with_namespace:
             logger.debug(f"Migration: namespace={namespace_name}, statement={statement}")
-            session._execute('sql', statement, namespace=namespace_name, fetch=False)
+            
+            current_statement = Statement(
+                language='sql',
+                statement=statement,
+                namespace=namespace_name 
+            )
+            session._application._log_statement(current_statement)
+            session._execute(current_statement, fetch=False)
         logger.info("Automatic schema migration complete.")
 

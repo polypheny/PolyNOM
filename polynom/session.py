@@ -44,6 +44,7 @@ class Session:
         self._cursor = None
         self._state = _SessionState.INITIALIZED
         self._tracked_models: dict[str, BaseModel] = {}
+        self._statements = []
 
         self._generator = _SqlGenerator()
 
@@ -78,6 +79,7 @@ class Session:
             raise ValueError("Model must have an _entry_id to perform update.")
 
         statement = self._generator._update(model)
+        self._statements.append(statement)
         statement.execute(self._cursor)
 
     def _update_change_log(self, model, diff: dict):   
@@ -115,6 +117,7 @@ class Session:
             self._add_related_models(model)
         
         statement = self._generator._insert(model)
+        self._statements.append(statement)
         statement.execute(self._cursor)
             
     def add_all(self, models, tracking=True):
@@ -152,17 +155,15 @@ class Session:
     def _track_all(self, models):
         for model in models:
             self._track(model)
-        
-    def _execute(self, language, statement, parameters=None, namespace=None, fetch=True):
-        self._cursor.executeany(language, statement, params=parameters, namespace=namespace)
-        if fetch:
-            try:
-                return self._cursor.fetchall()
-            except Exception:
-                return
-        return
+    
+    @DeprecationWarning
+    def _execute(self, language: str, statement: str, parameters=None, namespace: str =None, fetch: bool=True):
+        stmt = Statement(language, statement, parameters, namespace )
+        self._statements.append(stmt)
+        return self._execute(stmt, fetch)
 
     def _execute(self, statement: Statement, fetch=True):
+        self._statements.append(statement)
         statement.execute(self._cursor)
         if fetch:
             try:
@@ -175,6 +176,7 @@ class Session:
         self._throw_if_not_active()
         
         statement = self._generator._delete(model)
+        self._statements.append(statement)
         statement.execute(self._cursor)
 
         if model._entry_id in self._tracked_models:
@@ -204,6 +206,9 @@ class Session:
         
         self.flush()     
         self._conn.commit()
+
+        for statement in self._statements:
+            self._application._log_statement(statement)
 
         # check if the model has a child or not and then only commit that
         self._invalidate_models()

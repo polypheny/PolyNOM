@@ -88,7 +88,7 @@ Discards all changes made as part of this session. This invalidates all tracked 
 
 ---
 
-#### `_execute(language, statement, parameters=None, namespace=None, fetch=True)`
+#### `_execute(language: str, statement: str, parameters=None, namespace: str=None, fetch: bool=True)`
 
 Executes a statement using the session's internal cursor. This method supports both DDL and DML operations across different query languages (e.g., SQL, Cypher, MQL).
 
@@ -96,6 +96,16 @@ Executes a statement using the session's internal cursor. This method supports b
 - `statement`: The statement string to be executed.
 - `parameters` (optional): A dictionary of parameters to bind in the statement. Parameterization is currently only supported for SQL.
 - `namespace` (optional): The namespace in which to execute the statement. If not specified or set to None, the default namespace specified in the PolyNOM config is used.
+- `fetch` (optional, default=`True`): If `True`, the result of the query is returned if present. If set to `False` no results are retrieved independent of the query type.
+---
+
+WARNING: This method is considered deprecated and will be removed in the future.
+
+#### `_execute(statement: Statement, fetch=True)`
+
+Executes a statement object using the session's internal cursor. This method is the replacement for the previous, deprecated method of the same name.
+
+- `statement`: The statement object to execute.
 - `fetch` (optional, default=`True`): If `True`, the result of the query is returned if present. If set to `False` no results are retrieved independent of the query type.
 ---
 

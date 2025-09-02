@@ -18,6 +18,8 @@ DEFAULT_PASS = 'DEFAULT_PASS'
 
 CHANGE_LOG_IDENTIFIER = 'CHANGE_LOG_IDENTIFIER'
 
+STATEMENT_LOG_FILE_NAME = 'STATEMENT_LOG_FILE_NAME'
+
 # constants
 _internals = {
     INTERNAL_NAMESPACE: 'polynom_internal',
@@ -44,6 +46,7 @@ _config = {
     DEFAULT_TRANSPORT: 'plain',
     DEFAULT_USER: 'pa',
     DEFAULT_PASS: '',
+    STATEMENT_LOG_FILE_NAME: 'statements.log'
 }
 
 # derived options

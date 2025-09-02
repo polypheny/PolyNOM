@@ -214,15 +214,16 @@ def _execute_statements(application, file):
             language, namespace, statement_text = match.groups()
             namespace = None if namespace == "None" else namespace
 
-            stmt = Statement(
+            statement = Statement(
                 language=language,
                 namespace=namespace,
                 statement=statement_text,
             )
 
             try:
-                logger.debug(stmt.dump())
-                session._execute(stmt, fetch=False)
+                logger.debug(statement.dump())
+                application._log_statement(statement)
+                session._execute(statement, fetch=False)
             except Exception as e:
                 logger.error(f"Error executing line {line_number}: {e}")
 

@@ -114,6 +114,9 @@ Each configuration key is available as a named constant (e.g., `cfg.DEFAULT_USER
 - `DEFAULT_PASS`:  
   Password used for default authentication. Default: `''` (empty string)
 
+- `STATEMENT_LOG_FILE_NAME`:
+  Name of the statement log file. Default: `statements.log`
+
 ### Derived Configuration
 
 - `CHANGE_LOG_IDENTIFIER`:  
