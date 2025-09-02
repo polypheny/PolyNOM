@@ -297,3 +297,11 @@ A wrapper provided by PolyNOM for the native `TEXT` type. Stores geometry object
 - **Python type**: `bytes`
 - **Polytype**: `File`
 
+## Flex Model
+The `Flex Model` is a special model class to be used if the schema or the model class of an entry is only known at runtime and thus a static implementation is not possible.
+
+This situation might arise when working with data from data models that do not use fixed schemas such as the document model. A flex model instance can be created from a schema using the static `from_schema(cls, schema)` method provided by the `Flex Model` class. This instance will then have all fields specified in the specified schema. Further a kwargs constructor is provided that takes values for all specified fields. `Flex Model` instances can be added to sessions like regular models.
+
+Another usecase for a `Flex Model` arises if the schema is known but the model class is not. This might be the case if entries are retireved from origins not under the control of PolyNOM.
+
+WARNING: When developing, one should always first attempt to achieve the desired functionality without flex models. Flex models should only be used when it is not possible to know the schema or the model.
