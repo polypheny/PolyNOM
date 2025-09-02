@@ -157,7 +157,7 @@ class Session:
             self._track(model)
     
     @DeprecationWarning
-    def _execute(self, language, statement, parameters=None, namespace=None, fetch=True):
+    def _execute(self, language: str, statement: str, parameters=None, namespace: str =None, fetch: bool=True):
         stmt = Statement(language, statement, parameters, namespace )
         self._statements.append(stmt)
         return self._execute(stmt, fetch)
