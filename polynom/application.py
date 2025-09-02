@@ -5,6 +5,7 @@ import polynom.docker as docker
 from enum import Enum, auto
 from polynom.schema.migration import Migrator
 from polynom.session import Session
+from polynom.statement import Statement
 from polynom.schema.schema_registry import _get_ordered_schemas, _to_dict
 from polynom.schema.schema import DataModel
 from polynom.reflection import SchemaSnapshot, SchemaSnapshotSchema
@@ -29,7 +30,8 @@ class Application:
             use_docker: bool = False,
             migrate: bool = False,
             stop_container: bool = False,
-            remove_container: bool = False
+            remove_container: bool = False,
+            log_statements: bool = False
         ):
         cfg.lock()
 
@@ -42,6 +44,7 @@ class Application:
         self._migrate = migrate
         self._stop_container = stop_container
         self._remove_container = remove_container
+        self._log_statements = log_statements
 
         self._conn = None
         self._cursor = None
@@ -127,16 +130,22 @@ class Application:
         generator = _SqlGenerator()
 
         statement = generator._create_namespace(namespace, data_model, if_not_exists=True)
-        statement.log(self._app_uuid)
+        self._log_statement(statement)
         statement.execute(self._cursor)
         logger.debug(f"Created namespace {namespace} if absent.")
 
         statement = generator._define_entity(schema_class, if_not_exists=True)
-        statement.log(self._app_uuid)
+        self._log_statement(statement)
         statement.execute(self._cursor)
         self._conn.commit()
 
         logger.debug(f"Created entity {entity} if absent.")
+    
+    def _log_statement(self, statement: Statement):
+        if not self._log_statements:
+            return
+        statement.log(self._app_uuid)
+        
     
     def dump(self, file_path):
         if self._state != _ApplicationState.ACTIVE:

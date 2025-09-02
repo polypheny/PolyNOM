@@ -35,10 +35,8 @@ class Query:
             if not isinstance(expr, tuple) or len(expr) != 3:
                 raise ValueError("Invalid filter expression")
             op, field, value = expr
-            if not hasattr(field, '_db_field_name'):
-                raise TypeError(f"Expected a Field object, got {type(field)}")
-
-            clause = f'"{field._db_field_name}" {op} ?'
+            
+            clause = f'"{field}" {op} ?'
             self._filters.setdefault('_extra_clauses', []).append((clause, value))
         return self
 

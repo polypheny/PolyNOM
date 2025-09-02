@@ -6,7 +6,7 @@ from tests.utils import APP_UUID
 
 @pytest.fixture(scope='module')
 def app():
-    app = Application(APP_UUID, ('localhost', 20590), use_docker=True, stop_container=True)
+    app = Application(APP_UUID, ('localhost', 20590), use_docker=True, stop_container=True, log_statements=True)
     with app:
         yield app
 
@@ -92,6 +92,28 @@ def test_query_all_filtered4(setup_test):
         
         assert len(result) == 1
         assert result[0]._entry_id == users[0]._entry_id
+
+def test_query_all_filtered5(setup_test):
+    users, bikes, app = setup_test
+    session = Session(app, 'test')
+    with session:
+        result = User.query(session).filter(('=', 'active', True)).all()
+        expected_entry_ids = [users[0]._entry_id, users[3]._entry_id]
+        
+        assert len(result) == 2
+        for user in result:
+            assert user._entry_id in expected_entry_ids
+
+def test_query_all_filtered6(setup_test):
+    users, bikes, app = setup_test
+    session = Session(app, 'test')
+    with session:
+        result = User.query(session).filter(('LIKE', 'first_name', 'mir_')).all()
+        expected_entry_ids = users[1]._entry_id
+        
+        assert len(result) == 1
+        for user in result:
+            assert user._entry_id == expected_entry_ids
             
 def test_query_first_filtered(setup_test):
     users, bikes, app = setup_test

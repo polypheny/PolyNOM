@@ -33,8 +33,8 @@ Returns the updated `Query` instance to allow the chaining of query methods.
 Adds complex filter expressions to the query. Each expression must be a tuple of `(operator, field, value)`.  
 
 - `expressions`: Tuples specifying conditions.  
-- `operator`: A string SQL operator (e.g., `"="`, `">"`).  
-- `field`: A `Field` object representing a model field.  
+- `operator`: A string SQL operator (e.g., `"="`, `">"`, `"LIKE"`).  
+- `field`: The name of the model field to compare.  
 - `value`: The value to compare against.
 
 Returns the updated `Query` instance to allow the chaining of query methods.

@@ -122,7 +122,7 @@ class Migrator:
                 statement=statement,
                 namespace=namespace_name 
             )
-            current_statement.log(session._application._app_uuid)
+            session._application._log_statement(current_statement)
             session._execute(current_statement, fetch=False)
         logger.info("Automatic schema migration complete.")
 

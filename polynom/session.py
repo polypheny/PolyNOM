@@ -208,7 +208,7 @@ class Session:
         self._conn.commit()
 
         for statement in self._statements:
-            statement.log(self._application._app_uuid)
+            self._application._log_statement(statement)
 
         # check if the model has a child or not and then only commit that
         self._invalidate_models()
