@@ -55,7 +55,7 @@ setup(
         "Code": "https://github.com/polypheny/PolyNOM",
     },
     license="Apache License, Version 2.0",
-    packages=find_packages(),
+    packages=find_packages(include=["polynom*"]),
     include_package_data=True,
     command_options={
         'build_sphinx': {
