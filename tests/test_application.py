@@ -1,14 +1,8 @@
 import pytest
-from polynom.application import Application
 from polynom.session import Session
 from tests.model import User, Bike
-from tests.utils import APP_UUID
 
-@pytest.fixture(scope='module')
-def app():
-    app = Application(APP_UUID, ('localhost', 20590), use_docker=True, stop_container=True)
-    with app:
-        yield app
+pytestmark = pytest.mark.integration
 
 @pytest.fixture(autouse=True)
 def setup_test(app):
@@ -38,11 +32,11 @@ def setup_test(app):
 
     cleanup_session = Session(app, 'pytest')
     with cleanup_session:
-        User.query(cleanup_session).delete()
         Bike.query(cleanup_session).delete()
+        User.query(cleanup_session).delete()
         cleanup_session.commit()
 
-def test_dump(setup_test):
+def test_dump(setup_test, tmp_path):
     users, bikes, app = setup_test
 
     with Session(app, 'test') as session:
@@ -60,7 +54,7 @@ def test_dump(setup_test):
         for user in result:
             assert user._entry_id in expected_entry_ids
         
-    file = 'test_dump.sql'
+    file = tmp_path / 'test_dump.sql'
     app.dump(file)
     app.load(file)
 

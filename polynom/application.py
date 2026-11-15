@@ -2,6 +2,7 @@ import polypheny
 import logging
 import polynom.config as cfg
 import polynom.docker as docker
+from contextlib import ExitStack
 from enum import Enum, auto
 from polynom.schema.migration import Migrator
 from polynom.session import Session
@@ -33,8 +34,6 @@ class Application:
             remove_container: bool = False,
             log_statements: bool = False
         ):
-        cfg.lock()
-
         self._app_uuid = app_uuid
         self._address = address
         self._user = user
@@ -48,42 +47,53 @@ class Application:
 
         self._conn = None
         self._cursor = None
+        self._resources = ExitStack()
         self._state = _ApplicationState.INITIALIZED
 
     def __enter__(self):
         if self._state != _ApplicationState.INITIALIZED:
             raise ValueError("Application must only be initialized once.")
-        self._state = _ApplicationState.ACTIVE
-        
-        if self._use_docker:
-            docker._deploy_polypheny(self._address, self._user, self._password, self._transport)
+        try:
+            with ExitStack() as resources:
+                cfg.lock()
+                resources.callback(cfg.unlock)
 
-        self._conn = polypheny.connect(
-            self._address,
-            username=self._user,
-            password=self._password,
-            transport=self._transport
-        )
-        self._cursor = self._conn.cursor()
+                if self._use_docker:
+                    docker._deploy_polypheny(self._address, self._user, self._password, self._transport)
+                    container = cfg.get(cfg.POLYPHENY_CONTAINER_NAME)
+                    if self._remove_container:
+                        resources.callback(docker._remove_container_by_name, container)
+                    if self._stop_container:
+                        resources.callback(docker._stop_container_by_name, container)
 
-        self._verify_schema()
-        self._process_schemas()
+                self._conn = polypheny.connect(
+                    self._address,
+                    username=self._user,
+                    password=self._password,
+                    transport=self._transport
+                )
+                resources.callback(self._conn.close)
+                self._cursor = self._conn.cursor()
+                resources.callback(self._cursor.close)
+
+                self._state = _ApplicationState.ACTIVE
+                self._verify_schema()
+                self._process_schemas()
+                self._resources = resources.pop_all()
+        except BaseException:
+            self._mark_completed()
+            raise
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self._cursor:
-            self._cursor.close()
-        if self._conn:
-            self._conn.close()
-        
-        if not self._use_docker:
-            return
-        if self._stop_container:
-            docker._stop_container_by_name(cfg.get(cfg.POLYPHENY_CONTAINER_NAME))
-        if self._remove_container:
-            docker._remove_container_by_name(cfg.get(cfg.POLYPHENY_CONTAINER_NAME))
-        cfg.unlock()
+        try:
+            return self._resources.__exit__(exc_type, exc_val, exc_tb)
+        finally:
+            self._mark_completed()
 
+    def _mark_completed(self):
+        self._cursor = None
+        self._conn = None
         self._state = _ApplicationState.COMPLETED
 
     def _verify_schema(self):

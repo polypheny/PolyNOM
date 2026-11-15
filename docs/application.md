@@ -50,7 +50,7 @@ Application(
   Transport method to be used to communicate with the Polypheny instance. As of now 'plain' and 'unix' are available were 'plain' refers to TCP/IP.
 
 - `use_docker` (`bool`, optional):  
-  Wether to use Docker to manage the Polypheny instance. When set to 'True' PolyNOM searches for a Docker container running a Polypheny instance. The container name can be specified in the PolyNOM config. If no container is found, a new one is created on which Polypheny is deployed automatically. If a container is present but stopped, the container will be started. If not specified, this defaults to 'False'.
+  Manage the Polypheny instance with Docker. PolyNOM starts the configured container if it exists. Set `POLYPHENY_IMAGE_NAME` to an image that supports Prism 2.x to let PolyNOM create a container. Defaults to `False`.
 
 - `migrate` (`bool`, optional):  
   Wether to trigger automatic schema migration. If enabled, PolyNOM automatically compares the schema of the application with the one currently present on the Polypheny instance. Adjustments to the schmea are then made on instantiation of this application object. Defaults to `False`.
@@ -61,8 +61,7 @@ Application(
 - `remove_container` (`bool`, optional):  
   If `True`, removes the Docker container running the Polypheny instance after stopping. Defaults to `False`.
 
-- `remove_container` (`bool`, optional):  
-  If `True`, all data- or schema modifying statements executed by this application are logged. Defaults to `False`.
+- `log_statements` (`bool`, optional) logs data and schema changes when enabled. Defaults to `False`.
 
 ## Examples
 ```python
@@ -70,13 +69,13 @@ from polynom.application import Application
 
 APP_UUID = 'a8817239-9bae-4961-a619-1e9ef5575eff'
 
-# Create an application connected to a Polypheny Docker container. If absent, the container as well as Polypheny will be automatically deployed.
+# Start an existing Polypheny container or create one from the configured image.
 
-app = Application(APP_UUID, ('localhost', 20590))
+app = Application(APP_UUID, ('localhost', 20590), use_docker=True)
 with app:
    # do something
 
-# Equivalent to the one above.
+# Connect to a running Polypheny instance.
 
 with Application(APP_UUID, ('localhost', 20590)) as app:
    # do something

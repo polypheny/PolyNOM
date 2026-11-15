@@ -51,7 +51,7 @@ setup(
     author_email="mail@polypheny.org",
     url="https://polypheny.com/",
     project_urls={
-        "Documentation": "https://github.com/polypheny/PolyNOM/docs",
+        "Documentation": "https://github.com/polypheny/PolyNOM/tree/main/docs",
         "Code": "https://github.com/polypheny/PolyNOM",
     },
     license="Apache License, Version 2.0",

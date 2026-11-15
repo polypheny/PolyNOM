@@ -1,14 +1,8 @@
 import pytest
 from polynom.session import Session, _SessionState
-from polynom.application import Application
 from tests.model import User, Bike
-from tests.utils import APP_UUID
 
-@pytest.fixture(scope='module')
-def app():
-    app = Application(APP_UUID, ('localhost', 20590), use_docker=True, stop_container=True)
-    with app:
-        yield app
+pytestmark = pytest.mark.integration
 
 @pytest.fixture(autouse=True)
 def setup_test(app):
@@ -199,7 +193,7 @@ def test_session_delete_all_on_completed(app):
             s.delete_all(users)
         assert 'completed Session' in str(e.value)
         
-def test_session_add_outside_of_with(app):
+def test_session_delete_all_outside_of_with(app):
     users = [
         User('foo', 'foo@demo.ch', 'flo', 'brugger', True, False),
         User('yami', 'foo@demo.ch', 'yamina', 'muster', True, False)

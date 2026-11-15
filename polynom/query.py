@@ -11,6 +11,11 @@ if TYPE_CHECKING:
     
 logger = logging.getLogger(__name__)
 
+def _qualified_table(model):
+    schema = model.schema
+    return f'"{schema.namespace_name}"."{schema.entity_name}"'
+
+
 class Query:
     def __init__(self, model_cls: Type[BaseModel], session: Session):
         self._session = session
@@ -56,9 +61,8 @@ class Query:
         return self
 
     def count(self) -> int:
-        table = self._model_cls.schema.entity_name
         where_clause, values = self._build_where_clause()
-        sql = f'SELECT COUNT(*) FROM "{table}"'
+        sql = f'SELECT COUNT(*) FROM {_qualified_table(self._model_cls)}'
         if where_clause:
             sql += f" {where_clause}"
         self._session.flush()
@@ -74,7 +78,7 @@ class Query:
         if not pk_field:
             raise ValueError(f"No PrimaryKeyField found for model {self._model_cls.__name__}.")
 
-        sql = f'SELECT * FROM "{self._model_cls.schema.entity_name}" WHERE "{pk_field._db_field_name}" = ?'
+        sql = f'SELECT * FROM {_qualified_table(self._model_cls)} WHERE "{pk_field._db_field_name}" = ?'
         self._session.flush()
         cursor = self._session._cursor
         cursor.execute(sql, (pk_value,))
@@ -137,14 +141,14 @@ class Query:
                     if not fk2:
                         raise ValueError(f"Cannot infer join between {base_table} and {related_table}")
                     cond = f'"{base_table}"."{fk2._db_field_name}" = "{alias}"."{fk2.referenced_db_field_name}"'
-            joins += f' LEFT JOIN "{related_table}" AS "{alias}" ON {cond}'
+            joins += f' LEFT JOIN {_qualified_table(related_model)} AS "{alias}" ON {cond}'
             for fld in related_model.schema._get_fields():
                 selected_fields.append(
                     f'"{alias}"."{fld._db_field_name}" AS "{alias}__{fld._db_field_name}"'
                 )
 
         where_clause, values = self._build_where_clause()
-        sql = f'SELECT {", ".join(selected_fields)} FROM "{base_table}"{joins}'
+        sql = f'SELECT {", ".join(selected_fields)} FROM {_qualified_table(self._model_cls)}{joins}'
         if where_clause:
             sql += f" {where_clause}"
         if self._order_by:
