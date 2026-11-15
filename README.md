@@ -1,6 +1,6 @@
-# PolyNOM
+# PolyNOM — Polypheny Native Object Mapper
 
-PolyNOM (Polypheny Native Object Mapper) maps Python models to relational tables in [Polypheny](https://polypheny.com). Use sessions to insert, query, update, and delete model instances in a transaction. PolyNOM can create missing tables from registered schemas and offers optional schema migration and statement logging.
+PolyNOM currently maps Python model instances to rows in relational tables in [Polypheny](https://polypheny.com). Use sessions to insert, query, update, and delete model instances in a transaction. PolyNOM can create missing tables from registered schemas and offers optional schema migration and statement logging.
 
 ## Installation
 
