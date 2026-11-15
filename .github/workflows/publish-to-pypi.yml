@@ -1,50 +1,88 @@
 name: Publish to PyPI
 
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/publish-to-pypi.yml'
+      - 'MANIFEST.in'
+      - 'README.md'
+      - 'polynom/**'
+      - 'pyproject.toml'
+      - 'requirements.txt'
+      - 'setup.py'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Version to build and check (e.g. v0.4.0)
+        default: v0.0.0
+        type: string
   release:
-    types:
-      - published
+    types: [published]
+
+permissions:
+  contents: read
 
 jobs:
-  publish:
-    name: Build and publish to PyPI
+  build:
+    name: Build and verify Python distributions
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      packages: write
-      id-token: write
-
+    timeout-minutes: 10
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag || 'v0.0.0' }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: Set Version
-        id: version
-        run: |
-          echo "${GITHUB_REF#refs/tags/}" > polyNOM-version.txt
 
       - name: Install build tools
         run: python -m pip install 'build==1.6.1' 'twine==7.0.0'
 
-      - name: Build package
+      - name: Build wheel and source distribution
         run: |
+          printf '%s\n' "$RELEASE_TAG" > polyNOM-version.txt
           python -m build
-          python -m twine check --strict dist/*
 
+      - name: Check metadata and test installed wheel
+        run: |
+          python -m twine check --strict dist/*
+          package_version=$(python -c 'import sys; from packaging.version import Version; print(Version(sys.argv[1]))' "${RELEASE_TAG#v}")
+          python -m venv "$RUNNER_TEMP/polynom-release-test"
+          smoke_python="$RUNNER_TEMP/polynom-release-test/bin/python"
+          "$smoke_python" -m pip install dist/*.whl
+          "$smoke_python" -m pip check
+          "$smoke_python" -I - "$package_version" <<'PY'
+          import sys
+          from importlib.metadata import version
+
+          from polynom.application import Application
+          from polynom.session import Session
+
+          assert version("polypheny-polynom") == sys.argv[1]
+          assert callable(Application) and callable(Session)
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-distributions
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    name: Publish verified distributions to PyPI
+    if: github.event_name == 'release'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions: {}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-distributions
+          path: dist/
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
-
-      # Uncomment this block to publish to TestPyPI
-      # - name: Publish to TestPyPI
-      #   uses: pypa/gh-action-pypi-publish@release/v1
-      #   with:
-      #     repository-url: https://test.pypi.org/legacy/
-      #   env:
-      #     TWINE_USERNAME: __token__
-      #     TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
