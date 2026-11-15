@@ -91,7 +91,7 @@ Each configuration key is available as a named constant (e.g., `cfg.DEFAULT_USER
   Name of the Docker container running Polypheny. Default: `'polypheny'`
 
 - `POLYPHENY_IMAGE_NAME`:  
-  Docker image name used to run Polypheny. Default: `'polypheny/polypheny'`
+  Image used to create a Polypheny container. Set this to an image with a Prism 2.x interface before using Docker to create a new container. Default: `None`.
 
 - `POLYPHENY_PORTS`:  
   Dictionary mapping exposed ports for Polypheny services. Default:

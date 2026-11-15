@@ -27,16 +27,13 @@ jobs:
         run: |
           echo "${GITHUB_REF#refs/tags/}" > polyNOM-version.txt
 
-      - name: Create MANIFEST.in
-        run: |
-          echo "include polyNOM-version.txt" > MANIFEST.in
-          echo "include requirements.txt" >> MANIFEST.in
-
       - name: Install build tools
-        run: pip install --upgrade build twine
+        run: python -m pip install 'build==1.6.1' 'twine==7.0.0'
 
       - name: Build package
-        run: python -m build
+        run: |
+          python -m build
+          python -m twine check --strict dist/*
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

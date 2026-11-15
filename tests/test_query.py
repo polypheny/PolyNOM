@@ -1,14 +1,24 @@
 import pytest
+import polynom.config as cfg
 from polynom.session import Session
 from polynom.application import Application
 from tests.model import User, Bike
 from tests.utils import APP_UUID
 
+pytestmark = pytest.mark.integration
+
+
 @pytest.fixture(scope='module')
-def app():
-    app = Application(APP_UUID, ('localhost', 20590), use_docker=True, stop_container=True, log_statements=True)
-    with app:
-        yield app
+def app(polypheny_address, tmp_path_factory):
+    log_key = cfg.STATEMENT_LOG_FILE_NAME
+    previous_path = cfg.get(log_key)
+    log_path = tmp_path_factory.mktemp('statement-log') / 'statements.log'
+    cfg.set(log_key, str(log_path))
+    try:
+        with Application(APP_UUID, polypheny_address, log_statements=True) as application:
+            yield application
+    finally:
+        cfg.set(log_key, previous_path)
 
 @pytest.fixture(autouse=True)
 def setup_test(app):
@@ -38,8 +48,8 @@ def setup_test(app):
 
     cleanup_session = Session(app, 'pytest')
     with cleanup_session:
-        User.query(cleanup_session).delete()
         Bike.query(cleanup_session).delete()
+        User.query(cleanup_session).delete()
         cleanup_session.commit()
     
 def test_query_all(setup_test):

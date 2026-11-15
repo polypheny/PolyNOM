@@ -35,7 +35,7 @@ _config = {
     DEFAULT_NAMESPACE: 'polynom_entities',
     DEFAULT_DATA_MODEL: 'RELATIONAL',
     POLYPHENY_CONTAINER_NAME: 'polypheny',
-    POLYPHENY_IMAGE_NAME: 'vogti/polypheny',
+    POLYPHENY_IMAGE_NAME: None,
     POLYPHENY_PORTS: {
         "20590/tcp": 20590,
         "7659/tcp": 7659,

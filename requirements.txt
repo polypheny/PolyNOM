@@ -1,4 +1,4 @@
-polypheny
+polypheny>=2.0.0,<3
 docker
 shapely
 pytest

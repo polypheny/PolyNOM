@@ -2,28 +2,28 @@ import time
 import logging
 import polypheny
 import docker
-from docker.errors import DockerException, NotFound, ImageNotFound
+from docker.errors import DockerException, NotFound
 import polynom.config as cfg
 
 logger = logging.getLogger(__name__)
 
 def _wait_for_prism(address, user, password, transport, timeout=60):
-        start_time = time.time()
-        while time.time() - start_time < timeout:
-            try:
-                conn = polypheny.connect(
-                    address,
-                    username=user,
-                    password=password,
-                    transport=transport
-                )
-                conn.close()
-                return
-            except EOFError:
-                time.sleep(1)
-            except Exception as e:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            conn = polypheny.connect(address, username=user, password=password, transport=transport)
+            conn.close()
+            return
+        except EOFError:
+            pass
+        except polypheny.Error as e:
+            # The driver wraps a refused socket connection in its DB-API Error.
+            if not isinstance(e.__context__, ConnectionRefusedError):
                 raise RuntimeError(f"Unexpected error while connecting to Polypheny: {e}") from e
-        raise TimeoutError("Timed out waiting for Polypheny to become available.")
+        except Exception as e:
+            raise RuntimeError(f"Unexpected error while connecting to Polypheny: {e}") from e
+        time.sleep(min(1, max(0, deadline - time.monotonic())))
+    raise TimeoutError("Timed out waiting for Polypheny to become available.")
 
 def _deploy_polypheny(address, user: str, password: str, transport: str):
         logger.info("Establishing connection to Docker...")
@@ -44,6 +44,8 @@ def _deploy_polypheny(address, user: str, password: str, transport: str):
             container.start()
             logger.info(f"Container '{container_name}' found and started.")
         except NotFound:
+            if not image_name:
+                raise RuntimeError("Set POLYPHENY_IMAGE_NAME to a Prism 2.x image before creating a container.")
             logger.info("Polypheny container not found. Deploying a new container. This may take a moment...")
             try:
                 client.images.pull(image_name)
